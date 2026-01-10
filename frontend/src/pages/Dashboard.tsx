@@ -95,10 +95,10 @@ export default function Dashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-        <p className="mt-2 text-sm text-gray-600">
-          Welcome to Atlas Data Pipeline Platform
+      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 shadow-2xl border-4 border-white">
+        <h1 className="text-4xl font-extrabold text-white drop-shadow-lg">Dashboard</h1>
+        <p className="mt-3 text-lg text-indigo-100 font-semibold">
+          Welcome to Atlas Data Pipeline Platform - Your Data Command Center
         </p>
       </div>
 
@@ -107,25 +107,25 @@ export default function Dashboard() {
         {statCards.map((stat) => (
           <div
             key={stat.name}
-            className="bg-white overflow-hidden shadow-md rounded-lg hover:shadow-lg transition-shadow"
+            className="bg-white overflow-hidden shadow-2xl rounded-2xl hover:shadow-3xl transition-all hover:scale-105 border-4 border-gray-200 hover:border-indigo-400"
           >
             <div className="p-6">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <div className={`p-3 rounded-lg ${stat.color}`}>
-                    <stat.icon className="h-6 w-6 text-white" />
+                  <div className={`p-4 rounded-xl ${stat.color} shadow-lg`}>
+                    <stat.icon className="h-8 w-8 text-white" />
                   </div>
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-bold text-gray-700 truncate uppercase tracking-wide">
                       {stat.name}
                     </dt>
                     <dd>
-                      <div className="text-2xl font-semibold text-gray-900">
+                      <div className="text-3xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
                         {stat.value}
                       </div>
-                      <div className="mt-1 text-xs text-gray-500">
+                      <div className="mt-1 text-xs font-semibold text-gray-600 uppercase">
                         {stat.subtitle}
                       </div>
                     </dd>

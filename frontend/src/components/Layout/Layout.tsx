@@ -4,7 +4,7 @@ import Header from './Header';
 
 export default function Layout() {
   return (
-    <div>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50">
       <Sidebar />
       <div className="lg:pl-64">
         <Header />
