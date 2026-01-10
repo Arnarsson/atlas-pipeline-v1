@@ -1,0 +1,12 @@
+name: Ultra Simple Test
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Just echo
+      run: echo "This workflow ran successfully for issue ${{ github.event.issue.number }}"

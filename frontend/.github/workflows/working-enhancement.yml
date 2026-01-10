@@ -1,0 +1,26 @@
+name: Working Enhancement
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    
+    steps:
+    - name: Add comment
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        curl -X POST \
+          -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github+json" \
+          -H "X-GitHub-Api-Version: 2022-11-28" \
+          https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.issue.number }}/comments \
+          -d '{
+            "body": "## 🤖 Claude Code Enhancement Ready\n\nThis issue has been automatically detected and is ready for enhanced Claude Code responses.\n\n### 🚀 Next Steps:\n- Comment **`@claude`** followed by your request for enhanced, context-aware responses\n- Available commands: `@claude create email template`, `@claude analyze requirements`, `@claude implement solution`\n\n### 📋 Issue Management:\n- This issue can be moved through the pipeline: **Cold** → **Warm** → **Proposal** → **Won**\n- Add labels to categorize: `contact`, `task`, `high-priority`\n\n---\n*Claude Code is configured to provide action-oriented responses with direct links and follow-up suggestions.*"
+          }'
+        
+        echo "✅ Comment added to issue #${{ github.event.issue.number }}"

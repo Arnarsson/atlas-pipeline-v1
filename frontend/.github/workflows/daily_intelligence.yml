@@ -1,0 +1,60 @@
+name: Daily Intelligence Briefing
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'  # 9 AM weekdays
+  workflow_dispatch:
+
+jobs:
+  daily-briefing:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Generate Daily Intelligence
+        run: |
+          cat > daily_briefing.md << 'EOF'
+          # 📊 Seven Daily Intelligence - $(date '+%A, %B %d, %Y')
+          
+          ## 🎯 Today's Critical Path
+          
+          ### High Priority Tasks
+          - Review and prioritize open issues
+          - Focus on deadline-driven deliverables
+          - Address any blocking issues
+          
+          ### Quick Wins Available
+          - Update project documentation
+          - Optimize existing workflows
+          - Prepare for upcoming meetings
+          
+          ## 📈 Progress Insights
+          
+          ### This Week's Velocity
+          - Track completion rates
+          - Monitor project progress
+          - Identify bottlenecks
+          
+          ### AI Recommendations
+          - Focus on SEVEN platform development
+          - Advance ALLIGN mobile features
+          - Complete HARKA investor materials
+          
+          ---
+          *Generated automatically by Seven Intelligence System*
+          EOF
+          
+      - name: Create Daily Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const briefing = fs.readFileSync('daily_briefing.md', 'utf8');
+            
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `📊 Daily Intelligence Briefing - ${new Date().toLocaleDateString()}`,
+              body: briefing,
+              labels: ['📊 daily-briefing', '🤖 automation', '📈 analytics']
+            });
+

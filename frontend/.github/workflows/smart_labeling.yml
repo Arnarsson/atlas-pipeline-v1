@@ -1,0 +1,72 @@
+name: Smart Issue Labeling
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  smart-labeling:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Smart Label Assignment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const title = issue.title.toLowerCase();
+            const body = (issue.body || '').toLowerCase();
+            const text = `${title} ${body}`;
+            
+            const labels = [];
+            
+            // Project detection
+            const projects = {
+              'seven': '🚀 SEVEN',
+              'allign': '📊 ALLIGN', 
+              'harka': '🏗️ HARKA',
+              'atlas': '🤖 Atlas'
+            };
+            
+            for (const [keyword, label] of Object.entries(projects)) {
+              if (text.includes(keyword)) {
+                labels.push(label);
+                break;
+              }
+            }
+            
+            // Priority detection
+            const highPriorityWords = ['urgent', 'critical', 'asap', 'high priority', 'blocking'];
+            const lowPriorityWords = ['nice to have', 'enhancement', 'future', 'low priority'];
+            
+            if (highPriorityWords.some(word => text.includes(word))) {
+              labels.push('🎯 high-priority');
+            } else if (lowPriorityWords.some(word => text.includes(word))) {
+              labels.push('📝 low-priority');
+            } else {
+              labels.push('⚡ medium-priority');
+            }
+            
+            // Category detection
+            const categories = {
+              'technical': ['implement', 'code', 'develop', 'build', 'fix', 'bug'],
+              'ai-agent': ['agent', 'ai', 'automation', 'intelligent'],
+              'financial': ['payment', 'invoice', 'wages', 'revenue', 'money'],
+              'platform': ['platform', 'deployment', 'infrastructure'],
+              'mobile': ['mobile', 'app', 'ios', 'android'],
+              'documentation': ['document', 'guide', 'manual', 'spec', 'readme']
+            };
+            
+            for (const [category, keywords] of Object.entries(categories)) {
+              if (keywords.some(keyword => text.includes(keyword))) {
+                labels.push(`🔧 ${category}`);
+              }
+            }
+            
+            // Apply labels
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: labels
+              });
+            }

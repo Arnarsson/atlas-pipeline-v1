@@ -1,0 +1,68 @@
+name: Enhance Issues (Simple)
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  enhance-issue:
+    runs-on: ubuntu-latest
+    
+    if: github.actor != 'github-actions[bot]'
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Extract issue keywords
+      id: keywords
+      env:
+        ISSUE_TITLE: ${{ github.event.issue.title }}
+        ISSUE_BODY: ${{ github.event.issue.body }}
+      run: |
+        # Simple keyword extraction
+        KEYWORDS=$(echo "$ISSUE_TITLE $ISSUE_BODY" | tr '[:upper:]' '[:lower:]' | grep -oE '\b[a-z]{3,}\b' | head -10 | tr '\n' ' ')
+        echo "Found keywords: $KEYWORDS"
+        echo "keywords=$KEYWORDS" >> $GITHUB_OUTPUT
+        
+    - name: Add enhancement comment
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ISSUE_NUMBER: ${{ github.event.issue.number }}
+        KEYWORDS: ${{ steps.keywords.outputs.keywords }}
+      run: |
+        cat > comment.md << EOF
+        ## 🤖 Claude Code Enhancement Ready
+        
+        This issue has been automatically detected and is ready for enhanced Claude Code responses.
+        
+        **Extracted Keywords**: \`$KEYWORDS\`
+        
+        ### 🚀 Next Steps:
+        - Comment **\`@claude\`** followed by your request for enhanced, context-aware responses
+        - Available commands: \`@claude create email template\`, \`@claude analyze requirements\`, \`@claude implement solution\`
+        
+        ### 📋 Issue Management:
+        - This issue can be moved through the pipeline: **Cold** → **Warm** → **Proposal** → **Won**
+        - Add labels to categorize: \`contact\`, \`task\`, \`high-priority\`
+        
+        ---
+        *Claude Code is configured to provide action-oriented responses with direct links and follow-up suggestions.*
+        EOF
+        
+        # Try to add comment
+        if command -v gh >/dev/null 2>&1; then
+          gh issue comment $ISSUE_NUMBER --body-file comment.md
+          echo "✅ Enhancement comment added via GitHub CLI"
+        else
+          # Fallback to curl if gh is not available
+          COMMENT_BODY=\$(cat comment.md | jq -R -s .)
+          curl -X POST \
+            -H "Authorization: token \$GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/\${{ github.repository }}/issues/\$ISSUE_NUMBER/comments" \
+            -d "{\"body\": \$COMMENT_BODY}"
+          echo "✅ Enhancement comment added via API"
+        fi
+        
+        rm -f comment.md

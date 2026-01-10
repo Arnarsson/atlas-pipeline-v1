@@ -1,0 +1,306 @@
+{
+  "personalOS": {
+    "version": "2.0.0",
+    "sessionId": "20250121-001",
+    "lastSync": "2025-01-21T09:45:00Z",
+    "memoryConfig": {
+      "autoCapture": true,
+      "patternRecognition": true,
+      "knowledgeGraph": true,
+      "semanticSearch": true,
+      "crossSessionPersistence": true
+    }
+  },
+  
+  "memoryServers": {
+    "primary": {
+      "mcp__memory": {
+        "type": "knowledge-graph",
+        "status": "active",
+        "description": "Primary knowledge graph and entity management",
+        "capabilities": [
+          "create_entities",
+          "create_relations", 
+          "add_observations",
+          "search_nodes",
+          "read_graph"
+        ],
+        "autoCapture": [
+          "important_decisions",
+          "new_connections",
+          "key_insights",
+          "relationship_updates"
+        ]
+      }
+    },
+    
+    "secondary": {
+      "simple_memory": {
+        "type": "conversation-rag",
+        "status": "configured",
+        "path": "/Users/sven/Desktop/MCP/2-agent-memory-systems/simple_memory",
+        "description": "Conversation history with semantic search",
+        "capabilities": [
+          "semantic_search",
+          "conversation_retrieval",
+          "temporal_filtering",
+          "context_loading"
+        ],
+        "databases": [
+          "simple_memory.db",
+          "mcp_memory.db"
+        ]
+      },
+      
+      "claude_flow_memory": {
+        "type": "agent-coordination",
+        "status": "active", 
+        "description": "Agent coordination and workflow memory",
+        "capabilities": [
+          "memory_usage",
+          "memory_search",
+          "coordination_context",
+          "agent_history"
+        ],
+        "autoCapture": [
+          "agent_spawning",
+          "task_orchestration", 
+          "swarm_coordination",
+          "workflow_patterns"
+        ]
+      },
+      
+      "universal_memory": {
+        "type": "advanced-protocol",
+        "status": "available",
+        "path": "/Users/sven/Desktop/MCP/2-agent-memory-systems/universal-memory",
+        "description": "Advanced memory protocols with monitoring",
+        "capabilities": [
+          "vector_search",
+          "graph_relationships",
+          "real_time_updates",
+          "api_integration"
+        ]
+      }
+    }
+  },
+  
+  "memoryAgents": {
+    "@memory-curator": {
+      "status": "pending_deployment",
+      "responsibilities": [
+        "auto_capture_interactions",
+        "categorize_memories",
+        "optimize_storage",
+        "maintain_indexes"
+      ],
+      "servers": ["mcp__memory", "simple_memory"],
+      "triggers": ["every_command", "important_decision", "new_connection"],
+      "intelligence": {
+        "importance_scoring": true,
+        "duplicate_detection": true,
+        "category_assignment": true
+      }
+    },
+    
+    "@context-loader": {
+      "status": "pending_deployment", 
+      "responsibilities": [
+        "load_relevant_context",
+        "semantic_similarity_matching",
+        "temporal_relevance",
+        "cross_reference_memories"
+      ],
+      "servers": ["simple_memory", "mcp__memory"],
+      "triggers": ["before_command", "domain_switch", "context_request"],
+      "performance": {
+        "target_response_time": "100ms",
+        "cache_size": "847MB",
+        "context_window": "last_30_interactions"
+      }
+    },
+    
+    "@pattern-recognizer": {
+      "status": "pending_deployment",
+      "responsibilities": [
+        "identify_behavioral_patterns",
+        "predict_user_needs", 
+        "suggest_optimizations",
+        "learn_preferences"
+      ],
+      "servers": ["simple_memory", "claude_flow_memory"],
+      "triggers": ["recurring_behavior", "decision_point", "suggestion_request"],
+      "patterns": {
+        "meeting_scheduling": "weekly_team_standup_pattern",
+        "investment_analysis": "thorough_research_pattern", 
+        "project_workflow": "weekend_experiment_pattern",
+        "deep_work": "afternoon_productivity_pattern"
+      }
+    },
+    
+    "@knowledge-connector": {
+      "status": "pending_deployment",
+      "responsibilities": [
+        "auto_create_knowledge_links",
+        "maintain_relationship_graph",
+        "discover_new_connections",
+        "strengthen_relationship_weights"
+      ],
+      "servers": ["mcp__memory"],
+      "triggers": ["new_entity", "related_topic_discussion", "cross_domain_activity"],
+      "graph": {
+        "current_nodes": 486,
+        "current_edges": 1203,
+        "avg_connections_per_node": 2.5,
+        "discovery_rate": "34_per_week"
+      }
+    },
+    
+    "@insight-generator": {
+      "status": "pending_deployment",
+      "responsibilities": [
+        "generate_strategic_insights",
+        "cross_domain_analysis",
+        "trend_identification", 
+        "synthesis_reports"
+      ],
+      "servers": ["all"],
+      "triggers": ["weekly_review", "insight_request", "pattern_convergence"],
+      "intelligence": {
+        "synthesis_algorithms": true,
+        "trend_analysis": true,
+        "prediction_modeling": true,
+        "insight_validation": true
+      }
+    }
+  },
+  
+  "integrationPoints": {
+    "commandExecution": {
+      "before": [
+        "@context-loader.load_relevant_memories",
+        "@pattern-recognizer.predict_needs"
+      ],
+      "during": [
+        "@memory-curator.capture_decisions",
+        "@knowledge-connector.identify_connections"
+      ],
+      "after": [
+        "@memory-curator.store_outcomes",
+        "@pattern-recognizer.update_patterns",
+        "@insight-generator.check_synthesis_triggers"
+      ]
+    },
+    
+    "domainSwitching": {
+      "triggers": ["path_change", "agent_activation", "topic_shift"],
+      "actions": [
+        "load_domain_context",
+        "activate_domain_agents",
+        "prepare_domain_tools",
+        "update_memory_focus"
+      ]
+    },
+    
+    "sessionManagement": {
+      "startup": [
+        "load_previous_session_context",
+        "initialize_memory_agents", 
+        "restore_active_patterns",
+        "sync_all_memory_servers"
+      ],
+      "shutdown": [
+        "store_session_summary",
+        "update_pattern_learning",
+        "backup_active_memories",
+        "generate_insights_report"
+      ]
+    }
+  },
+  
+  "memoryCategories": {
+    "interaction_memory": {
+      "commands_executed": 2847,
+      "decisions_made": 486,
+      "outcomes_recorded": 234,
+      "context_switches": 1203,
+      "storage": "simple_memory + mcp__memory",
+      "retention": "permanent"
+    },
+    
+    "knowledge_memory": {
+      "concepts_learned": 892,
+      "relationships": 1203,
+      "expertise_areas": 23,
+      "information_sources": 67,
+      "storage": "mcp__memory",
+      "retention": "permanent"
+    },
+    
+    "behavioral_memory": {
+      "patterns_identified": 23,
+      "preferences_learned": 156,
+      "success_predictors": 12,
+      "failure_modes": 8,
+      "storage": "claude_flow_memory",
+      "retention": "6_months_active"
+    },
+    
+    "temporal_memory": {
+      "session_history": 847,
+      "project_timelines": 34,
+      "decision_outcomes": 234,
+      "pattern_evolution": 89,
+      "storage": "simple_memory",
+      "retention": "1_year"
+    }
+  },
+  
+  "performance": {
+    "targetMetrics": {
+      "context_load_time": "< 100ms",
+      "memory_search_time": "< 500ms",
+      "pattern_recognition_time": "< 1s",
+      "knowledge_graph_query": "< 200ms"
+    },
+    
+    "currentMetrics": {
+      "total_memories": 2847,
+      "active_cache_size": "847MB",
+      "total_indexed_size": "12.3GB",
+      "daily_interaction_rate": "1200/day",
+      "memory_accuracy": "94.7%",
+      "pattern_prediction_accuracy": "87.3%"
+    }
+  },
+  
+  "automation": {
+    "autoCapture": {
+      "enabled": true,
+      "triggers": [
+        "all_commands",
+        "important_decisions", 
+        "new_connections",
+        "insight_moments",
+        "pattern_confirmations"
+      ],
+      "exclusions": [
+        "routine_confirmations",
+        "simple_queries",
+        "test_commands"
+      ]
+    },
+    
+    "autoSuggestions": {
+      "enabled": true,
+      "frequency": "contextual",
+      "confidence_threshold": 0.8,
+      "categories": [
+        "next_actions",
+        "related_memories",
+        "pattern_optimizations",
+        "connection_opportunities"
+      ]
+    }
+  }
+}

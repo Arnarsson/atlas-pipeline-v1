@@ -1,0 +1,97 @@
+name: Upload Conversations to Supabase
+
+  on:
+    workflow_dispatch:
+    push:
+      branches: [ main ]
+
+  jobs:
+    upload:
+      runs-on: ubuntu-latest
+      steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          pip install psycopg2-binary
+
+      - name: Upload conversation data
+        env:
+          SUPABASE_CONNECTION: postgresql://postgres:QGxTg9WMEOqRVBqtXpUPa1CZe7TVBQXP@135.181.101.70:5432/postgres
+        run: |
+          python3 << 'EOF'
+          import psycopg2
+          import os
+
+          conn_string = os.environ.get('SUPABASE_CONNECTION')
+
+          try:
+              print("🔗 Connecting to self-hosted Supabase...")
+              conn = psycopg2.connect(conn_string)
+              cursor = conn.cursor()
+
+              cursor.execute("SELECT version();")
+              version = cursor.fetchone()[0]
+              print(f"✅ Connected: {version[:50]}...")
+
+              print("📋 Creating conversations table...")
+              cursor.execute("""
+                  CREATE TABLE IF NOT EXISTS conversations (
+                      id TEXT PRIMARY KEY,
+                      source TEXT NOT NULL,
+                      title TEXT,
+                      content TEXT NOT NULL,
+                      created_at TIMESTAMP,
+                      word_count INTEGER,
+                      participants TEXT
+                  );
+              """)
+              
+              cursor.execute("""
+                  CREATE INDEX IF NOT EXISTS conversations_search_idx
+                  ON conversations USING gin(to_tsvector('english', coalesce(title, '') || ' ' || coalesce(content, '')));
+              """)
+              
+              conn.commit()
+              print("✅ Tables created")
+
+              print("📝 Adding conversation data...")
+              sample_conversations = [
+                  ('prod001', 'chatgpt', 'MCPs Missing and Naming Tips', 'AI productivity newsletters crossing 100k subs with insights about productivity tools and automation systems.', '2025-06-20T13:38:00', 25989,
+  'user,assistant'),
+                  ('prod002', 'chatgpt', 'Input-Centric OKR CRM App', 'User Engagement and Productivity Tools with Pomodoro Timer Integration and analytics on productivity trends.', '2024-09-03T14:43:34', 1060, 'user,assistant'),
+                  ('github001', 'chatgpt', 'GitHub Automation and Productivity', 'Discussion about GitHub Actions workflows and building productivity systems with automated issue enhancement.', '2024-12-15T10:00:00', 3200,
+  'user,assistant'),
+                  ('ai001', 'claude', 'AI Assistant Integration Patterns', 'Exploring patterns for integrating AI assistants into productivity workflows with MCP servers and automation systems.', '2025-01-10T14:30:00', 4100,
+  'Human,Assistant'),
+                  ('crm001', 'chatgpt', 'Seven Ultimate Productivity CRM', 'Planning productivity system with task management and CRM pipeline Cold to Warm to Proposal to Won.', '2024-11-20T09:15:00', 2800, 'user,assistant')
+              ]
+
+              for conv in sample_conversations:
+                  cursor.execute("""
+                      INSERT INTO conversations (id, source, title, content, created_at, word_count, participants)
+                      VALUES (%s, %s, %s, %s, %s, %s, %s)
+                      ON CONFLICT (id) DO NOTHING
+                  """, conv)
+              
+              conn.commit()
+              
+              cursor.execute("SELECT COUNT(*) FROM conversations")
+              total_count = cursor.fetchone()[0]
+
+              print(f"🎉 SUCCESS! Database ready with {total_count} conversations")
+              print("🚀 GitHub Actions can now access real conversation context!")
+
+              conn.close()
+
+          except Exception as e:
+              print(f"❌ Error: {e}")
+              import traceback
+              traceback.print_exc()
+          EOF

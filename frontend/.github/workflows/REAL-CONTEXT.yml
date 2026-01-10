@@ -1,0 +1,117 @@
+name: Real Context Enhancement
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+    - name: Extract keywords from issue
+      id: keywords
+      env:
+        ISSUE_TITLE: ${{ github.event.issue.title }}
+        ISSUE_BODY: ${{ github.event.issue.body }}
+      run: |
+        # Extract meaningful keywords
+        KEYWORDS=$(echo "$ISSUE_TITLE $ISSUE_BODY" | \
+          tr '[:upper:]' '[:lower:]' | \
+          grep -oE '\b[a-zA-Z]{3,}\b' | \
+          head -10 | \
+          tr '\n' ' ')
+        
+        echo "keywords=$KEYWORDS" >> $GITHUB_OUTPUT
+        echo "Found keywords: $KEYWORDS"
+    
+    - name: Search conversation database
+      id: search
+      env:
+        KEYWORDS: ${{ steps.keywords.outputs.keywords }}
+      run: |
+        # Try to search your local conversation API
+        # Replace YOUR_LOCAL_IP with your actual IP address
+        API_URL="http://YOUR_LOCAL_IP:8080/search"
+        
+        if [ -n "$KEYWORDS" ]; then
+          # Make API call to search conversations
+          SEARCH_RESULT=$(curl -s -G "$API_URL" \
+            --data-urlencode "query=$KEYWORDS" \
+            --data-urlencode "limit=5" || echo "API_UNAVAILABLE")
+          
+          if [ "$SEARCH_RESULT" != "API_UNAVAILABLE" ]; then
+            echo "has_results=true" >> $GITHUB_OUTPUT
+            echo "results<<EOF" >> $GITHUB_OUTPUT
+            echo "$SEARCH_RESULT" | jq -r '
+              "🔍 Found \(.results_count) relevant conversations:\n" +
+              (.results[] | 
+                "**[\(.source | ascii_upcase)] \(.title // "Untitled")**\n" +
+                "📅 \(.created_at // "Unknown date") • 📝 \(.word_count // 0) words\n" +
+                "\(.snippet // "No preview")\n"
+              )
+            ' >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "has_results=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "has_results=false" >> $GITHUB_OUTPUT
+        fi
+    
+    - name: Add context comment
+      uses: actions/github-script@v7
+      env:
+        KEYWORDS: ${{ steps.keywords.outputs.keywords }}
+        HAS_RESULTS: ${{ steps.search.outputs.has_results }}
+        SEARCH_RESULTS: ${{ steps.search.outputs.results }}
+      with:
+        script: |
+          const keywords = process.env.KEYWORDS || '';
+          const hasResults = process.env.HAS_RESULTS === 'true';
+          const searchResults = process.env.SEARCH_RESULTS || '';
+          
+          let commentBody = `## 🤖 Claude Code Enhancement Ready\n\n`;
+          commentBody += `This issue has been automatically detected and enhanced with context.\n\n`;
+          commentBody += `**Extracted Keywords**: \`${keywords}\`\n\n`;
+          
+          if (hasResults && searchResults.trim()) {
+            commentBody += `### 🧠 Relevant Context from Your Conversations\n\n`;
+            commentBody += searchResults;
+            commentBody += `\n---\n\n`;
+          } else {
+            commentBody += `### 🔍 Local Search Available\n\n`;
+            commentBody += `Search your 25M+ word conversation database locally:\n`;
+            commentBody += `\`\`\`bash\n`;
+            commentBody += `python scripts/search_conversations.py "${keywords}"\n`;
+            commentBody += `\`\`\`\n\n`;
+          }
+          
+          commentBody += `### 🚀 Next Steps:\n`;
+          commentBody += `- Comment **\`@claude\`** for enhanced, context-aware responses\n`;
+          commentBody += `- Available: \`@claude create email template\`, \`@claude analyze requirements\`\n\n`;
+          
+          commentBody += `### 📋 Pipeline Management:\n`;
+          commentBody += `- Move through: **Cold** → **Warm** → **Proposal** → **Won**\n`;
+          commentBody += `- Add labels: \`contact\`, \`task\`, \`high-priority\`\n\n`;
+          
+          commentBody += `*Enhanced with conversation context from your productivity database.*`;
+          
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: commentBody
+          });
+          
+          console.log('✅ Enhanced comment added to issue');
+    
+    - name: Log enhancement results
+      run: |
+        echo "📊 Enhancement Summary:"
+        echo "   Issue: #${{ github.event.issue.number }} - '${{ github.event.issue.title }}'"
+        echo "   Keywords: ${{ steps.keywords.outputs.keywords }}"
+        echo "   Context Found: ${{ steps.search.outputs.has_results }}"
+        echo "✅ Real context enhancement completed"

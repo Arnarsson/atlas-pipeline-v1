@@ -1,0 +1,57 @@
+DataPipeline/
+└── docs/
+    ├── INTEGRATION_SUMMARY.md (600+ lines) - High-level overview and statistics
+    └── integration-examples/
+        ├── INDEX.md (252 lines) - Quick navigation index
+        ├── README.md (454 lines) - Complete integration guide
+        ├── QUICK_REFERENCE.md (495 lines) - Copy-paste snippets
+        │
+        ├── 01_adamiao_presidio_pii_detection.py (417 lines)
+        │   ├── PIIDetectionConfig
+        │   ├── PIIDetector (with retry logic)
+        │   └── SilverLayerTransformer
+        │
+        ├── 02_prefect_openlineage_tracking.py (590 lines)
+        │   ├── LineageConfig
+        │   ├── LineageTracker
+        │   ├── @task extract_from_bronze
+        │   ├── @task transform_to_silver
+        │   ├── @task load_to_gold
+        │   └── @flow bronze_to_gold_pipeline
+        │
+        ├── 03_fastapi_celery_pipeline_execution.py (646 lines)
+        │   ├── AppConfig
+        │   ├── PipelineRun (SQLAlchemy model)
+        │   ├── AtlasPipelineTask (Celery base)
+        │   ├── @celery_app.task run_bronze_to_silver_pipeline
+        │   ├── @celery_app.task run_silver_to_gold_pipeline
+        │   ├── @app.post /pipelines/execute
+        │   ├── @app.get /pipelines/{run_id}
+        │   ├── @app.get /pipelines
+        │   └── @app.delete /pipelines/{run_id}/cancel
+        │
+        ├── 04_soda_core_quality_checks.py (696 lines)
+        │   ├── QualityConfig
+        │   ├── QualityCheckRun (SQLAlchemy model)
+        │   ├── QualityMetric (SQLAlchemy model)
+        │   ├── SodaCheckGenerator
+        │   │   ├── generate_bronze_checks()
+        │   │   ├── generate_silver_checks()
+        │   │   └── generate_gold_checks()
+        │   ├── QualityCheckExecutor
+        │   └── PipelineWithQualityGates
+        │
+        └── 05_opsdroid_bot_integration.py (667 lines)
+            ├── AtlasConfig
+            ├── AtlasPipelineClient (async HTTP)
+            └── AtlasPipelineSkill
+                ├── @match_regex run_pipeline
+                ├── @match_regex check_status
+                ├── @match_regex list_pipelines
+                ├── @match_regex quality_report
+                ├── @match_regex cancel_pipeline
+                └── @match_regex help_command
+
+TOTAL: 4,217 lines across 8 files
+- Python code: ~3,016 lines (5 files)
+- Documentation: ~1,201 lines (3 files)

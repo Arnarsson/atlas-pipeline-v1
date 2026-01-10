@@ -1,0 +1,42 @@
+name: Test Search Functionality
+
+on:
+  workflow_dispatch:
+    inputs:
+      test_query:
+        description: 'Test search query'
+        required: true
+        default: 'productivity system'
+
+jobs:
+  test-search:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+        
+    - name: Test database and search
+      run: |
+        echo "🧪 Testing search functionality..."
+        
+        # Check if database exists
+        if [ ! -f "data/seven.db" ]; then
+          echo "⚠️ Database not found at data/seven.db"
+          echo "Available files in data/:"
+          ls -la data/ 2>/dev/null || echo "data/ directory doesn't exist"
+          exit 0
+        fi
+        
+        # Test search script
+        echo "🔍 Testing search with query: '${{ github.event.inputs.test_query }}'"
+        python3 scripts/search_conversations.py "${{ github.event.inputs.test_query }}" --limit 3
+        
+        echo ""
+        echo "📊 Database stats:"
+        python3 scripts/search_conversations.py --stats

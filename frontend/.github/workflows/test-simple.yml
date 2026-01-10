@@ -1,0 +1,38 @@
+name: Simple Test
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Test GitHub Actions
+      run: |
+        echo "🚀 GitHub Actions is working!"
+        echo "Issue #${{ github.event.issue.number }}: ${{ github.event.issue.title }}"
+        
+    - name: Add simple comment
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        ISSUE_NUMBER: ${{ github.event.issue.number }}
+      run: |
+        echo "## 🧪 Test Comment" > comment.md
+        echo "" >> comment.md
+        echo "GitHub Actions automation is working! Issue #${ISSUE_NUMBER} was detected." >> comment.md
+        echo "" >> comment.md
+        echo "*This is a test comment to verify automation.*" >> comment.md
+        
+        if command -v gh >/dev/null 2>&1; then
+          gh issue comment $ISSUE_NUMBER --body-file comment.md
+          echo "✅ Comment added successfully"
+        else
+          echo "❌ GitHub CLI not available"
+          curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE_NUMBER/comments" \
+            -d "{\"body\": \"## 🧪 Test Comment\n\nGitHub Actions automation is working! Issue #${ISSUE_NUMBER} was detected.\n\n*This is a test comment to verify automation.*\"}"
+          echo "✅ Comment added via API"
+        fi

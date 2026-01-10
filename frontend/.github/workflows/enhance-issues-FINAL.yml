@@ -1,0 +1,52 @@
+name: Enhance Issues FINAL
+
+on:
+  issues:
+    types: [opened]
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+    - name: Add enhancement comment
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const title = context.payload.issue.title || '';
+          const body = context.payload.issue.body || '';
+          const keywords = (title + ' ' + body)
+            .toLowerCase()
+            .match(/\b[a-zA-Z]{3,}\b/g) || [];
+          
+          const enhancementComment = `## 🤖 Claude Code Enhancement Ready
+
+This issue has been automatically detected and is ready for enhanced Claude Code responses.
+
+**Extracted Keywords**: \`${keywords.slice(0, 10).join(', ')}\`
+
+### 🚀 Next Steps:
+- Comment **\`@claude\`** followed by your request for enhanced, context-aware responses
+- Available commands: \`@claude create email template\`, \`@claude analyze requirements\`, \`@claude implement solution\`
+
+### 📋 Issue Management:
+- This issue can be moved through the pipeline: **Cold** → **Warm** → **Proposal** → **Won**
+- Add labels to categorize: \`contact\`, \`task\`, \`high-priority\`
+
+### 🔍 For Context Search:
+Your local conversation database has 25M+ words. Use:
+\`\`\`bash
+python scripts/search_conversations.py "${keywords.slice(0, 3).join(' ')}"
+\`\`\`
+
+---
+*Claude Code is configured to provide action-oriented responses with direct links and follow-up suggestions.*`;
+
+          await github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: enhancementComment
+          });
