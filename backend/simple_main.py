@@ -268,7 +268,11 @@ async def get_quality_metrics(run_id: str) -> dict:
     quality_results = results.get("quality", {})
 
     # Transform to frontend format
-    transformed = transform_quality_metrics(quality_results, run_id)
+    transformed = transform_quality_metrics(
+        quality_results,
+        run_id,
+        run_data.get("dataset_name")
+    )
     return transformed
 
 

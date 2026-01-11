@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createTestCSV, cleanupTestFiles } from './helpers/setup';
+import { createTestCSV, createEmptyCSV, cleanupTestFiles } from './helpers/setup';
 
 test.describe('CSV Upload', () => {
   test.afterEach(async () => {
@@ -87,10 +87,8 @@ test.describe('CSV Upload', () => {
   test('should handle empty file gracefully', async ({ page }) => {
     await page.goto('/upload');
 
-    // Create empty CSV
-    const fs = require('fs');
-    const emptyPath = '/tmp/empty.csv';
-    fs.writeFileSync(emptyPath, '');
+    // Create empty CSV using helper
+    const emptyPath = await createEmptyCSV('empty.csv');
 
     await page.locator('input[type="file"]').setInputFiles(emptyPath);
 
@@ -98,6 +96,6 @@ test.describe('CSV Upload', () => {
     await expect(page.locator('text=/error|invalid|empty/i')).toBeVisible({ timeout: 5000 });
 
     // Cleanup
-    fs.unlinkSync(emptyPath);
+    await cleanupTestFiles('empty.csv');
   });
 });

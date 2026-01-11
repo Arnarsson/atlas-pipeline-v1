@@ -1,9 +1,9 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
-**Last Updated**: January 10, 2026, 23:12
-**Status**: ✅ **PRODUCTION-READY** (81% Atlas Data Pipeline Standard)
+**Last Updated**: January 11, 2026, 16:30
+**Status**: ✅ **PRODUCTION-READY** (84% Atlas Data Pipeline Standard)
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
-**Session**: Complete - 7 hours initial + bug fixes and UI improvements
+**Session**: Complete - 7 hours initial + bug fixes, UI improvements, and API contract fixes
 
 ---
 
@@ -11,9 +11,9 @@
 
 ### **COMPLETE: Weeks 1-6 Backend + Weeks 7-8 Frontend**
 
-**Progress**: 81% of Atlas Data Pipeline Standard
+**Progress**: 84% of Atlas Data Pipeline Standard
 **Code**: ~42,000 lines (Backend + Frontend + Database + Tests + Docs)
-**Tests**: 204 total (82 backend ✅ + 122 frontend E2E)
+**Tests**: 206 total (82 backend ✅ + 124 frontend E2E)
 **Repository**: https://github.com/Arnarsson/atlas-pipeline-v1
 
 **Directory Structure**:
@@ -665,9 +665,52 @@ npm install  # Frontend
 
 ---
 
-## 🔧 Recent Updates (Jan 10, 2026)
+## 🔧 Recent Updates
 
-### **Bug Fixes**
+### **Frontend API Contract Fix** (Commit: ea47ac3, Jan 11, 2026)
+✅ **CRITICAL FIX: API Response Structure Alignment**
+
+**Problem Solved:**
+- Fixed: `TypeError: Cannot convert undefined or null to object` errors in browser console
+- Root cause: Backend returned flat 3-dimension structure, frontend expected nested 6-dimension structure
+- Missing dimensions: uniqueness, accuracy, timeliness
+- Missing PII fields: compliance_status, recommendations
+
+**Solution Implemented:**
+- ✅ **Backend Transformers** (`quality.py`):
+  - `transform_quality_metrics()` - Converts to 6-dimension nested structure
+  - `extract_column_metrics()` - Extracts per-column quality data
+  - `transform_pii_report()` - Adds compliance_status and recommendations
+- ✅ **Updated Endpoints** (`simple_main.py`):
+  - Quality metrics now returns: `{run_id, overall_score, dimensions{6}, column_metrics{}}`
+  - PII report now returns: `{run_id, total_detections, detections_by_type{}, detections[], compliance_status, recommendations[]}`
+- ✅ **Frontend Error Handling**:
+  - Created `ErrorBoundary.tsx` component for graceful error handling
+  - Wrapped QualityDashboard and PIITable with error boundaries
+- ✅ **Comprehensive Testing**:
+  - Created `11-api-contracts.spec.ts` - Validates API structure matches TypeScript interfaces
+  - Created `12-error-handling.spec.ts` - Tests error scenarios and resilience
+  - Updated `02-csv-upload.spec.ts` - Now expects all 6 dimensions
+
+**Verification:**
+- ✅ All 6 quality dimensions now display correctly
+- ✅ PII compliance status shows: compliant/warning/violation
+- ✅ Recommendations section displays properly
+- ✅ No more console TypeError errors
+- ✅ API responses match frontend TypeScript interfaces exactly
+
+**Files Changed:**
+- `backend/app/api/routes/quality.py` (+162 lines)
+- `backend/simple_main.py` (+7/-27 lines)
+- `frontend/src/components/ErrorBoundary.tsx` (NEW, +56 lines)
+- `frontend/src/pages/Upload.tsx` (+10 lines)
+- `frontend/tests/e2e/11-api-contracts.spec.ts` (NEW, +209 lines)
+- `frontend/tests/e2e/12-error-handling.spec.ts` (NEW, +218 lines)
+- `frontend/tests/e2e/02-csv-upload.spec.ts` (+9 lines)
+
+---
+
+### **Bug Fixes** (Jan 10, 2026)
 ✅ **Numpy 2.x Compatibility** (Commit: 1c56079)
 - Fixed: `module 'numpy' has no attribute 'bool8'` error
 - Updated `_convert_numpy_types()` in `backend/app/pipeline/core/orchestrator.py`
@@ -689,7 +732,9 @@ npm install  # Frontend
 - Enhanced shadows for depth
 - Fixed Tailwind CSS v4 compatibility issues
 
-### **Known Issues**
+### **Known Issues** (Updated Jan 11, 2026)
+✅ **FIXED**: Frontend console errors - API contract mismatch resolved (commit ea47ac3)
+✅ **FIXED**: Missing quality dimensions - all 6 now display correctly
 ⚠️ **Browser Cache**: After UI updates, do a hard refresh (Ctrl+Shift+R) or use incognito mode
 ⚠️ **Dashboard Stats**: `/dashboard/stats` endpoint returns 404 (not yet implemented)
 

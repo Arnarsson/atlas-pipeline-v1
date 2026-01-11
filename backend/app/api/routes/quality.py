@@ -3,7 +3,6 @@
 from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
 from app.api.routes.pipeline import pipeline_runs
 
@@ -15,29 +14,12 @@ print("QUALITY.PY MODULE LOADED - TRANSFORMERS ARE ACTIVE")
 print("=" * 80)
 
 
-class QualityMetricsResponse(BaseModel):
-    """Response model for quality metrics."""
-    run_id: str
-    dataset_name: str
-    completeness_score: float
-    validity_score: float
-    consistency_score: float
-    overall_score: float
-    details: dict[str, Any]
-
-
-class PIIReportResponse(BaseModel):
-    """Response model for PII report."""
-    run_id: str
-    dataset_name: str
-    pii_found: bool
-    pii_count: int
-    pii_types: list[str]
-    pii_details: list[dict[str, Any]]
-
-
 # Transformer functions to align backend responses with frontend TypeScript interfaces
-def transform_quality_metrics(quality_results: dict, run_id: str) -> dict:
+def transform_quality_metrics(
+    quality_results: dict,
+    run_id: str,
+    dataset_name: str | None = None
+) -> dict:
     """
     Transform backend quality results to match frontend QualityMetrics interface.
 
@@ -47,6 +29,7 @@ def transform_quality_metrics(quality_results: dict, run_id: str) -> dict:
     """
     return {
         "run_id": run_id,
+        "dataset_name": dataset_name or quality_results.get("dataset_name", ""),
         "overall_score": quality_results.get("overall_score", 0.0),
         "dimensions": {
             "completeness": {
@@ -102,13 +85,16 @@ def extract_column_metrics(details: dict) -> dict:
     - null_count: number
     - unique_count: number
     """
+    details = details or {}
     column_details = details.get("all_dimensions", {})
-    column_metrics = {}
+    column_metrics: dict[str, dict[str, Any]] = {}
 
+    # Week 3 format with dimension-specific column metrics
     for dimension in ["completeness", "uniqueness", "validity"]:
         dim_data = column_details.get(dimension, {}).get("details", {})
-        if f"column_{dimension}" in dim_data:
-            for col_name, col_data in dim_data[f"column_{dimension}"].items():
+        column_key = f"column_{dimension}"
+        if column_key in dim_data:
+            for col_name, col_data in dim_data[column_key].items():
                 if col_name not in column_metrics:
                     column_metrics[col_name] = {
                         "completeness": 1.0,
@@ -116,7 +102,7 @@ def extract_column_metrics(details: dict) -> dict:
                         "validity": 1.0,
                         "data_type": "unknown",
                         "null_count": 0,
-                        "unique_count": 0
+                        "unique_count": 0,
                     }
 
                 if dimension == "completeness":
@@ -127,6 +113,37 @@ def extract_column_metrics(details: dict) -> dict:
                     column_metrics[col_name]["unique_count"] = col_data.get("unique_count", 0)
                 elif dimension == "validity":
                     column_metrics[col_name]["validity"] = col_data.get("validity", 1.0)
+
+    # Week 2 fallback using basic column_details (completeness + uniqueness proxy)
+    basic_columns = details.get("column_details", {})
+    for col_name, col_data in basic_columns.items():
+        if col_name not in column_metrics:
+            column_metrics[col_name] = {
+                "completeness": 1.0,
+                "uniqueness": 1.0,
+                "validity": 1.0,
+                "data_type": str(col_data.get("dtype", "unknown")),
+                "null_count": 0,
+                "unique_count": 0,
+            }
+
+        # Completeness: invert missing percentage if present
+        if "missing_percentage" in col_data:
+            column_metrics[col_name]["completeness"] = max(
+                0.0, min(1.0, 1.0 - float(col_data.get("missing_percentage", 0.0)))
+            )
+        column_metrics[col_name]["null_count"] = col_data.get(
+            "missing_count", column_metrics[col_name]["null_count"]
+        )
+
+        # Use unique percentage/count as uniqueness proxy
+        if "unique_percentage" in col_data:
+            column_metrics[col_name]["uniqueness"] = max(
+                0.0, min(1.0, float(col_data.get("unique_percentage", 0.0)))
+            )
+        column_metrics[col_name]["unique_count"] = col_data.get(
+            "unique_count", column_metrics[col_name]["unique_count"]
+        )
 
     return column_metrics
 
@@ -211,7 +228,11 @@ async def get_quality_metrics_test(run_id: str):
 
     results = run_data.get("results", {})
     quality_results = results.get("quality", {})
-    transformed = transform_quality_metrics(quality_results, run_id)
+    transformed = transform_quality_metrics(
+        quality_results,
+        run_id,
+        run_data.get("dataset_name")
+    )
 
     return transformed
 
@@ -244,7 +265,11 @@ async def get_quality_metrics(run_id: str) -> dict:
     quality_results = results.get("quality", {})
 
     # Transform to frontend format
-    transformed = transform_quality_metrics(quality_results, run_id)
+    transformed = transform_quality_metrics(
+        quality_results,
+        run_id,
+        run_data.get("dataset_name")
+    )
 
     # Debug logging
     print(f"DEBUG: Transformed keys: {list(transformed.keys())}")

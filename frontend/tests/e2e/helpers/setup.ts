@@ -30,6 +30,12 @@ export async function createLargeTestCSV(filename: string, rows: number = 100): 
   return path;
 }
 
+export async function createEmptyCSV(filename: string): Promise<string> {
+  const path = `/tmp/${filename}`;
+  fs.writeFileSync(path, '');
+  return path;
+}
+
 export async function cleanupTestFiles(...filenames: string[]) {
   for (const filename of filenames) {
     try {

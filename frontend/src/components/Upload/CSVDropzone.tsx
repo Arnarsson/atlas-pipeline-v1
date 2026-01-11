@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Upload, FileText, X, Loader2, CheckCircle, Sparkles, AlertTriangle } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
@@ -12,24 +12,48 @@ interface CSVDropzoneProps {
 export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
   const [file, setFile] = useState<File | null>(null);
   const [datasetName, setDatasetName] = useState('');
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [shouldAutoUpload, setShouldAutoUpload] = useState(false);
 
   const uploadMutation = useMutation({
     mutationFn: (data: { file: File; datasetName: string }) =>
       uploadCSV(data.file, data.datasetName),
     onSuccess: (data) => {
+      setUploadError(null);
+      setShouldAutoUpload(false);
       onUploadSuccess(data.run_id);
       setFile(null);
       setDatasetName('');
     },
+    onError: (error: unknown) => {
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Upload failed. Please check your file and try again.';
+      setUploadError(message);
+      setShouldAutoUpload(false);
+    },
   });
+  const { mutate: triggerUpload, isPending, isError, error } = uploadMutation;
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     if (acceptedFiles.length > 0) {
       const csvFile = acceptedFiles[0];
+      setUploadError(null);
+
+      if (csvFile.size === 0) {
+        setUploadError('Selected CSV file is empty. Please upload a file with data.');
+        setFile(null);
+        setDatasetName('');
+        setShouldAutoUpload(false);
+        return;
+      }
+
       setFile(csvFile);
       // Auto-generate dataset name from filename
       const name = csvFile.name.replace('.csv', '').replace(/[^a-zA-Z0-9_]/g, '_');
       setDatasetName(name);
+      setShouldAutoUpload(true);
     }
   }, []);
 
@@ -45,15 +69,35 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setShouldAutoUpload(false);
+    setUploadError(null);
     if (file && datasetName) {
-      uploadMutation.mutate({ file, datasetName });
+      triggerUpload({ file, datasetName });
     }
   };
 
   const removeFile = () => {
     setFile(null);
     setDatasetName('');
+    setUploadError(null);
+    setShouldAutoUpload(false);
   };
+
+  useEffect(() => {
+    if (shouldAutoUpload && file && datasetName && !isPending) {
+      triggerUpload({ file, datasetName });
+      setShouldAutoUpload(false);
+    }
+  }, [shouldAutoUpload, file, datasetName, isPending, triggerUpload]);
+
+  const mutationErrorMessage =
+    isError && error instanceof Error
+      ? error.message
+      : isError
+        ? 'Upload failed. Please try again.'
+        : null;
+
+  const errorMessage = uploadError || mutationErrorMessage;
 
   return (
     <div className="w-full max-w-2xl mx-auto">
@@ -250,14 +294,14 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3, delay: 0.1 }}
-              whileHover={{ scale: uploadMutation.isPending ? 1 : 1.02 }}
-              whileTap={{ scale: uploadMutation.isPending ? 1 : 0.98 }}
+              whileHover={{ scale: isPending ? 1 : 1.02 }}
+              whileTap={{ scale: isPending ? 1 : 0.98 }}
               type="submit"
               data-testid="upload-submit-btn"
-              disabled={!datasetName || uploadMutation.isPending}
+              disabled={!datasetName || isPending}
               className="w-full flex justify-center items-center gap-2 py-4 px-6 border-2 border-transparent rounded-xl shadow-lg text-base font-bold text-white bg-gradient-to-r from-primary-600 to-blue-600 hover:from-primary-700 hover:to-blue-700 focus:outline-none focus:ring-4 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300"
             >
-              {uploadMutation.isPending ? (
+              {isPending ? (
                 <>
                   <Loader2 className="h-5 w-5 animate-spin" data-testid="upload-spinner" />
                   <span>Processing Your Data...</span>
@@ -281,7 +325,7 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
 
         {/* Error Message */}
         <AnimatePresence>
-          {uploadMutation.isError && (
+          {errorMessage && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
@@ -302,7 +346,7 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
                 <div>
                   <h3 className="text-sm font-bold text-red-900">Upload Failed</h3>
                   <p className="text-sm text-red-800 mt-1">
-                    {uploadMutation.error.message}
+                    {errorMessage}
                   </p>
                 </div>
               </div>

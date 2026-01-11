@@ -11,6 +11,7 @@ export interface PipelineRun {
 
 export interface QualityMetrics {
   run_id: string;
+  dataset_name?: string;
   overall_score: number;
   dimensions: {
     completeness: DimensionMetrics;
@@ -53,6 +54,7 @@ export interface PIIDetection {
 
 export interface PIIReport {
   run_id: string;
+  dataset_name: string;
   total_detections: number;
   detections_by_type: Record<string, number>;
   detections: PIIDetection[];

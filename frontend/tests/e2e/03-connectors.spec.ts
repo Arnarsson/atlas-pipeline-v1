@@ -21,8 +21,8 @@ test.describe('Connector Management', () => {
     const createButton = page.locator('button:has-text("Create"), button:has-text("Add"), button:has-text("New")').first();
     await createButton.click();
 
-    // Should show connector type selection
-    await expect(page.locator('text=/PostgreSQL|MySQL|REST API|CSV|Database/i')).toBeVisible();
+    // Should show connector type selection (use .first() to handle multiple matches)
+    await expect(page.locator('text=/PostgreSQL|MySQL|REST API|CSV|Database/i').first()).toBeVisible();
   });
 
   test('should create PostgreSQL connector', async ({ page }) => {
