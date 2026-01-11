@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from app.connectors.base import ConnectionConfig
 from app.connectors.registry import ConnectorRegistry
 from app.pipeline.core.orchestrator import PipelineOrchestrator
+from app.api.routes.quality import transform_quality_metrics, transform_pii_report
 from app.scheduler.tasks import (
     delete_connector,
     get_connector,
@@ -246,11 +247,11 @@ async def delete_pipeline_run(run_id: str) -> dict[str, str]:
     return {"message": f"Pipeline run {run_id} deleted successfully"}
 
 
-@app.get("/quality/metrics/{run_id}", response_model=QualityMetricsResponse)
-async def get_quality_metrics(run_id: str) -> QualityMetricsResponse:
+@app.get("/quality/metrics/{run_id}")
+async def get_quality_metrics(run_id: str) -> dict:
     """Get data quality metrics for a pipeline run.
 
-    Week 3 Enhancement: Returns all 6 quality dimensions if Week 3 detectors are enabled.
+    Returns frontend-compatible structure with all 6 dimensions.
     """
     if run_id not in pipeline_runs:
         raise HTTPException(status_code=404, detail=f"Pipeline run {run_id} not found")
@@ -266,15 +267,9 @@ async def get_quality_metrics(run_id: str) -> QualityMetricsResponse:
     results = run_data.get("results", {})
     quality_results = results.get("quality", {})
 
-    return QualityMetricsResponse(
-        run_id=run_id,
-        dataset_name=run_data["dataset_name"],
-        completeness_score=quality_results.get("completeness_score", 0.0),
-        validity_score=quality_results.get("validity_score", 0.0),
-        consistency_score=quality_results.get("consistency_score", 0.0),
-        overall_score=quality_results.get("overall_score", 0.0),
-        details=quality_results.get("details", {}),
-    )
+    # Transform to frontend format
+    transformed = transform_quality_metrics(quality_results, run_id)
+    return transformed
 
 
 @app.get("/quality/dimensions/{run_id}")
@@ -343,11 +338,11 @@ async def get_quality_dimensions(run_id: str) -> dict[str, Any]:
         }
 
 
-@app.get("/quality/pii-report/{run_id}", response_model=PIIReportResponse)
-async def get_pii_report(run_id: str) -> PIIReportResponse:
+@app.get("/quality/pii-report/{run_id}")
+async def get_pii_report(run_id: str) -> dict:
     """Get PII detection report for a pipeline run.
 
-    Week 3 Enhancement: Includes confidence scores if Presidio was used.
+    Returns frontend-compatible structure with compliance status and recommendations.
     """
     if run_id not in pipeline_runs:
         raise HTTPException(status_code=404, detail=f"Pipeline run {run_id} not found")
@@ -363,17 +358,13 @@ async def get_pii_report(run_id: str) -> PIIReportResponse:
     results = run_data.get("results", {})
     pii_results = results.get("pii", {})
 
-    pii_details = pii_results.get("findings", [])
-    pii_types = list(set([finding["type"] for finding in pii_details]))
-
-    return PIIReportResponse(
-        run_id=run_id,
-        dataset_name=run_data["dataset_name"],
-        pii_found=len(pii_details) > 0,
-        pii_count=len(pii_details),
-        pii_types=pii_types,
-        pii_details=pii_details,
+    # Transform to frontend format
+    transformed = transform_pii_report(
+        pii_results,
+        run_id,
+        run_data.get("dataset_name", "unknown")
     )
+    return transformed
 
 
 @app.get("/compliance/pii-detailed/{run_id}")

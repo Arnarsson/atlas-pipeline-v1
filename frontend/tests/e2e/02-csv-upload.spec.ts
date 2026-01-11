@@ -20,30 +20,38 @@ test.describe('CSV Upload', () => {
     // Wait for upload to complete
     await page.waitForSelector('text=/Quality Score|Overall Score|Results/i', { timeout: 10000 });
 
-    // Verify quality metrics are shown
+    // Verify all 6 quality dimensions are shown
     await expect(page.locator('text=/Completeness/i')).toBeVisible();
     await expect(page.locator('text=/Uniqueness/i')).toBeVisible();
     await expect(page.locator('text=/Validity/i')).toBeVisible();
+    await expect(page.locator('text=/Consistency/i')).toBeVisible();
+    await expect(page.locator('text=/Accuracy/i')).toBeVisible();
+    await expect(page.locator('text=/Timeliness/i')).toBeVisible();
 
     // Verify PII results are shown
     await expect(page.locator('text=/PII|Sensitive|EMAIL|PHONE/i')).toBeVisible();
   });
 
-  test('should show quality dimensions', async ({ page }) => {
+  test('should show all six quality dimensions', async ({ page }) => {
     await page.goto('/upload');
 
     const csvPath = await createTestCSV('test_dimensions.csv');
     await page.locator('input[type="file"]').setInputFiles(csvPath);
 
-    // Wait for results
-    await page.waitForSelector('text=/Quality/i', { timeout: 10000 });
+    // Wait for quality dimensions section
+    await page.waitForSelector('[data-testid="quality-dimensions"]', { timeout: 30000 });
 
-    // Check key dimensions are displayed
-    const dimensions = ['Completeness', 'Uniqueness', 'Validity'];
+    // Verify all 6 dimensions are displayed
+    const dimensions = ['Completeness', 'Uniqueness', 'Validity', 'Consistency', 'Accuracy', 'Timeliness'];
 
     for (const dim of dimensions) {
       await expect(page.locator(`text=${dim}`)).toBeVisible();
     }
+
+    // Also verify the dimension count
+    const dimensionCards = page.locator('[data-testid="quality-dimensions"] > div');
+    const count = await dimensionCards.count();
+    expect(count).toBe(6);
   });
 
   test('should display PII detections with confidence', async ({ page }) => {

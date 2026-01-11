@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import CSVDropzone from '@/components/Upload/CSVDropzone';
 import QualityDashboard from '@/components/Quality/QualityDashboard';
 import PIITable from '@/components/PII/PIITable';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getQualityMetrics, getPIIReport, downloadReport } from '@/api/client';
 
 export default function Upload() {
@@ -146,7 +147,13 @@ export default function Upload() {
                     Quality Metrics
                   </h2>
                 </div>
-                <QualityDashboard metrics={qualityMetrics} />
+                <ErrorBoundary fallback={
+                  <div className="p-6 bg-red-50 rounded-xl border-2 border-red-200">
+                    <p className="text-red-800">Error loading quality metrics. Please try refreshing the page.</p>
+                  </div>
+                }>
+                  <QualityDashboard metrics={qualityMetrics} />
+                </ErrorBoundary>
               </motion.div>
             ) : null}
 
@@ -203,7 +210,13 @@ export default function Upload() {
                     PII Detection Results
                   </h2>
                 </div>
-                <PIITable report={piiReport} />
+                <ErrorBoundary fallback={
+                  <div className="p-6 bg-red-50 rounded-xl border-2 border-red-200">
+                    <p className="text-red-800">Error loading PII report. Please try refreshing the page.</p>
+                  </div>
+                }>
+                  <PIITable report={piiReport} />
+                </ErrorBoundary>
               </motion.div>
             ) : null}
 
