@@ -7,6 +7,7 @@ from app.connectors.google_sheets import GoogleSheetsConnector
 from app.connectors.mysql import MySQLConnector
 from app.connectors.postgresql import PostgreSQLConnector
 from app.connectors.rest_api import RESTAPIConnector
+from app.connectors.salesforce import SalesforceConnector
 
 
 class ConnectorRegistry:
@@ -23,6 +24,7 @@ class ConnectorRegistry:
         "mysql": MySQLConnector,
         "rest_api": RESTAPIConnector,
         "google_sheets": GoogleSheetsConnector,
+        "salesforce": SalesforceConnector,
     }
 
     @classmethod
