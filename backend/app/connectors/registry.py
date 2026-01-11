@@ -3,6 +3,7 @@
 from typing import Dict, List, Type
 
 from app.connectors.base import SourceConnector
+from app.connectors.google_sheets import GoogleSheetsConnector
 from app.connectors.mysql import MySQLConnector
 from app.connectors.postgresql import PostgreSQLConnector
 from app.connectors.rest_api import RESTAPIConnector
@@ -21,6 +22,7 @@ class ConnectorRegistry:
         "postgresql": PostgreSQLConnector,
         "mysql": MySQLConnector,
         "rest_api": RESTAPIConnector,
+        "google_sheets": GoogleSheetsConnector,
     }
 
     @classmethod
