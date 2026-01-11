@@ -15,6 +15,10 @@ export default function Dashboard() {
     queryKey: ['dashboard-stats'],
     queryFn: getDashboardStats,
     refetchInterval: 30000, // Refresh every 30 seconds
+    retry: false, // Don't retry if endpoint doesn't exist
+    onError: () => {
+      // Silently handle errors - dashboard will show zeros
+    },
   });
 
   if (isLoading) {

@@ -89,7 +89,7 @@ export default function PIITable({ report }: PIITableProps) {
                 transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.4 }}
                 className="text-3xl font-extrabold text-gray-900"
               >
-                {Object.keys(report.detections_by_type).length}
+                {Object.keys(report.detections_by_type || {}).length}
               </motion.p>
             </div>
           </div>
@@ -127,7 +127,7 @@ export default function PIITable({ report }: PIITableProps) {
       </div>
 
       {/* PII by Type */}
-      {Object.keys(report.detections_by_type).length > 0 && (
+      {Object.keys(report.detections_by_type || {}).length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -138,7 +138,7 @@ export default function PIITable({ report }: PIITableProps) {
             Detections by Type
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(report.detections_by_type).map(([type, count], idx) => (
+            {Object.entries(report.detections_by_type || {}).map(([type, count], idx) => (
               <motion.div
                 key={type}
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -158,7 +158,7 @@ export default function PIITable({ report }: PIITableProps) {
       )}
 
       {/* Detections Table */}
-      {report.detections.length > 0 && (
+      {report.detections && report.detections.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -226,7 +226,7 @@ export default function PIITable({ report }: PIITableProps) {
       )}
 
       {/* Recommendations */}
-      {report.recommendations.length > 0 && (
+      {report.recommendations && report.recommendations.length > 0 && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
