@@ -29,16 +29,18 @@ export default function QualityReports() {
     }
 
     // Date filters
-    if (dateFrom && new Date(run.created_at) < new Date(dateFrom)) {
+    if (dateFrom && run.created_at && new Date(run.created_at) < new Date(dateFrom)) {
       return false;
     }
-    if (dateTo && new Date(run.created_at) > new Date(dateTo)) {
+    if (dateTo && run.created_at && new Date(run.created_at) > new Date(dateTo)) {
       return false;
     }
 
     // Quality score filter
     if (run.quality_score !== undefined) {
-      if (run.quality_score < minQuality || run.quality_score > maxQuality) {
+      const minScore = minQuality / 100;
+      const maxScore = maxQuality / 100;
+      if (run.quality_score < minScore || run.quality_score > maxScore) {
         return false;
       }
     }
@@ -54,17 +56,17 @@ export default function QualityReports() {
   });
 
   const getQualityColor = (score?: number) => {
-    if (!score) return 'bg-gray-100 text-gray-800';
-    if (score >= 95) return 'bg-green-100 text-green-800';
-    if (score >= 85) return 'bg-yellow-100 text-yellow-800';
+    if (score === undefined) return 'bg-gray-100 text-gray-800';
+    if (score >= 0.95) return 'bg-green-100 text-green-800';
+    if (score >= 0.85) return 'bg-yellow-100 text-yellow-800';
     return 'bg-red-100 text-red-800';
   };
 
   const getQualityBadge = (score?: number) => {
-    if (!score) return null;
+    if (score === undefined) return null;
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getQualityColor(score)}`}>
-        {score.toFixed(1)}%
+        {(score * 100).toFixed(1)}%
       </span>
     );
   };
@@ -103,8 +105,9 @@ export default function QualityReports() {
           <p className="text-2xl font-bold text-green-600">
             {filteredRuns.length > 0
               ? (
-                  filteredRuns.reduce((sum, r) => sum + (r.quality_score || 0), 0) /
-                  filteredRuns.filter(r => r.quality_score).length
+                  (filteredRuns.reduce((sum, r) => sum + (r.quality_score || 0), 0) /
+                    Math.max(filteredRuns.filter(r => r.quality_score !== undefined).length, 1)) *
+                  100
                 ).toFixed(1)
               : '0'}%
           </p>
@@ -112,7 +115,7 @@ export default function QualityReports() {
         <div className="bg-white rounded-lg shadow p-6">
           <p className="text-sm text-gray-600">High Quality (≥95%)</p>
           <p className="text-2xl font-bold text-green-600">
-            {filteredRuns.filter(r => (r.quality_score || 0) >= 95).length}
+            {filteredRuns.filter(r => (r.quality_score || 0) >= 0.95).length}
           </p>
         </div>
         <div className="bg-white rounded-lg shadow p-6">
@@ -278,7 +281,7 @@ export default function QualityReports() {
                       {run.dataset_name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(run.created_at), 'MMM dd, yyyy HH:mm')}
+                      {run.created_at ? format(new Date(run.created_at), 'MMM dd, yyyy HH:mm') : 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getQualityBadge(run.quality_score)}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getRecentRuns, getPIIReport } from '@/api/client';
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
@@ -20,26 +20,25 @@ export default function PIIAnalysis() {
   const [isLoadingPII, setIsLoadingPII] = useState(true);
 
   // Load all PII reports
-  useState(() => {
+  useEffect(() => {
     const loadPIIData = async () => {
       setIsLoadingPII(true);
       const allDetections: any[] = [];
 
       for (const run of runs) {
-        if (run.pii_detections && run.pii_detections > 0) {
-          try {
-            const report = await getPIIReport(run.run_id);
-            report.detections.forEach((detection: any) => {
-              allDetections.push({
-                ...detection,
-                dataset: run.dataset_name,
-                run_id: run.run_id,
-                created_at: run.created_at,
-              });
+        if (run.status !== 'completed') continue;
+        try {
+          const report = await getPIIReport(run.run_id);
+          report.detections.forEach((detection: any) => {
+            allDetections.push({
+              ...detection,
+              dataset: run.dataset_name,
+              run_id: run.run_id,
+              created_at: run.created_at,
             });
-          } catch (error) {
-            console.error('Failed to load PII report:', error);
-          }
+          });
+        } catch (error) {
+          console.error('Failed to load PII report:', error);
         }
       }
 
@@ -47,10 +46,8 @@ export default function PIIAnalysis() {
       setIsLoadingPII(false);
     };
 
-    if (runs.length > 0) {
-      loadPIIData();
-    }
-  });
+    loadPIIData();
+  }, [runs]);
 
   // Calculate stats
   const totalPIIFields = piiData.length;
@@ -60,8 +57,11 @@ export default function PIIAnalysis() {
   }, {});
 
   const mostCommonType = Object.entries(piiByType).sort((a, b) => b[1] - a[1])[0];
-  const avgConfidence = piiData.length > 0
-    ? piiData.reduce((sum, d) => sum + d.confidence, 0) / piiData.length
+  const confidenceValues = piiData
+    .map((d) => d.confidence)
+    .filter((value) => typeof value === 'number') as number[];
+  const avgConfidence = confidenceValues.length > 0
+    ? confidenceValues.reduce((sum, value) => sum + value, 0) / confidenceValues.length
     : 0;
 
   // High-risk PII types
@@ -97,11 +97,11 @@ export default function PIIAnalysis() {
     const headers = ['Dataset', 'Column', 'PII Type', 'Confidence', 'Row', 'Detected At'];
     const rows = filteredData.map(d => [
       d.dataset,
-      d.location.column,
+      d.location?.column || '',
       d.entity_type,
-      d.confidence.toFixed(2),
-      d.location.row,
-      format(new Date(d.created_at), 'yyyy-MM-dd HH:mm'),
+      d.confidence !== undefined ? d.confidence.toFixed(2) : '',
+      d.location?.row ?? '',
+      d.created_at ? format(new Date(d.created_at), 'yyyy-MM-dd HH:mm') : '',
     ]);
 
     const csv = [headers, ...rows].map(row => row.join(',')).join('\n');
@@ -174,7 +174,7 @@ export default function PIIAnalysis() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm text-gray-600">Avg Confidence</p>
-              <p className="text-2xl font-bold text-gray-900">{avgConfidence.toFixed(1)}%</p>
+              <p className="text-2xl font-bold text-gray-900">{(avgConfidence * 100).toFixed(1)}%</p>
             </div>
             <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
               <CheckCircle className="w-6 h-6 text-green-600" />
@@ -373,7 +373,7 @@ export default function PIIAnalysis() {
                       {detection.dataset}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {detection.location.column}
+                      {detection.location?.column || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
@@ -390,23 +390,25 @@ export default function PIIAnalysis() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      Row {detection.location.row}
+                      Row {detection.location.row ?? '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
                         <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
                           <div
                             className="bg-blue-600 h-2 rounded-full"
-                            style={{ width: `${detection.confidence * 100}%` }}
+                            style={{ width: `${(detection.confidence || 0) * 100}%` }}
                           ></div>
                         </div>
                         <span className="text-sm text-gray-600">
-                          {(detection.confidence * 100).toFixed(0)}%
+                          {detection.confidence !== undefined
+                            ? `${(detection.confidence * 100).toFixed(0)}%`
+                            : 'N/A'}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {format(new Date(detection.created_at), 'MMM dd, yyyy')}
+                      {detection.created_at ? format(new Date(detection.created_at), 'MMM dd, yyyy') : 'N/A'}
                     </td>
                   </tr>
                 ))}

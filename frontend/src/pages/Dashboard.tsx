@@ -183,7 +183,7 @@ export default function Dashboard() {
                     <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {new Date(run.created_at).toLocaleString()}
+                        {run.created_at ? new Date(run.created_at).toLocaleString() : 'N/A'}
                       </span>
                       {run.quality_score !== undefined && (
                         <span className="font-medium">

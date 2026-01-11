@@ -32,14 +32,14 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 95) return 'bg-green-500';
-    if (score >= 85) return 'bg-yellow-500';
+    if (score >= 0.95) return 'bg-green-500';
+    if (score >= 0.85) return 'bg-yellow-500';
     return 'bg-red-500';
   };
 
   const getScoreTextColor = (score: number) => {
-    if (score >= 95) return 'text-green-800';
-    if (score >= 85) return 'text-yellow-800';
+    if (score >= 0.95) return 'text-green-800';
+    if (score >= 0.85) return 'text-yellow-800';
     return 'text-red-800';
   };
 
@@ -95,7 +95,7 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-2">Overall Quality Score</h3>
                   <p className="text-4xl font-bold text-blue-900">
-                    {metrics.overall_score.toFixed(1)}%
+                    {(metrics.overall_score * 100).toFixed(1)}%
                   </p>
                 </div>
                 <div className="text-right">
@@ -109,7 +109,7 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                         className={`w-8 h-8 rounded ${
                           dim.data.passed ? 'bg-green-500' : 'bg-red-500'
                         }`}
-                        title={`${dim.label}: ${dim.data.score.toFixed(1)}%`}
+                        title={`${dim.label}: ${(dim.data.score * 100).toFixed(1)}%`}
                       ></div>
                     ))}
                   </div>
@@ -128,17 +128,17 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                     <div className="flex items-center justify-between mb-3">
                       <h4 className="font-medium text-gray-900">{dim.label}</h4>
                       <span className={`text-sm font-medium ${getScoreTextColor(dim.data.score)}`}>
-                        {dim.data.score.toFixed(1)}%
+                        {(dim.data.score * 100).toFixed(1)}%
                       </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
                       <div
                         className={`h-2 rounded-full ${getScoreColor(dim.data.score)}`}
-                        style={{ width: `${dim.data.score}%` }}
+                        style={{ width: `${dim.data.score * 100}%` }}
                       ></div>
                     </div>
                     <div className="flex items-center justify-between text-xs text-gray-500">
-                      <span>Threshold: {dim.data.threshold}%</span>
+                      <span>Threshold: {(dim.data.threshold * 100).toFixed(0)}%</span>
                       <span className={dim.data.passed ? 'text-green-600' : 'text-red-600'}>
                         {dim.data.passed ? '✓ Passed' : '✗ Failed'}
                       </span>
@@ -236,8 +236,8 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                         </span>
                       </div>
                       <div className="flex items-center space-x-4 text-sm text-gray-600">
-                        <span>Completeness: {data.completeness.toFixed(1)}%</span>
-                        <span>Validity: {data.validity.toFixed(1)}%</span>
+                        <span>Completeness: {(data.completeness * 100).toFixed(1)}%</span>
+                        <span>Validity: {(data.validity * 100).toFixed(1)}%</span>
                       </div>
                     </button>
 
@@ -250,11 +250,11 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                               <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
                                 <div
                                   className={`h-2 rounded-full ${getScoreColor(data.completeness)}`}
-                                  style={{ width: `${data.completeness}%` }}
+                                  style={{ width: `${data.completeness * 100}%` }}
                                 ></div>
                               </div>
                               <span className="text-sm font-medium text-gray-900">
-                                {data.completeness.toFixed(1)}%
+                                {(data.completeness * 100).toFixed(1)}%
                               </span>
                             </div>
                           </div>
@@ -264,11 +264,11 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                               <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
                                 <div
                                   className={`h-2 rounded-full ${getScoreColor(data.uniqueness)}`}
-                                  style={{ width: `${data.uniqueness}%` }}
+                                  style={{ width: `${data.uniqueness * 100}%` }}
                                 ></div>
                               </div>
                               <span className="text-sm font-medium text-gray-900">
-                                {data.uniqueness.toFixed(1)}%
+                                {(data.uniqueness * 100).toFixed(1)}%
                               </span>
                             </div>
                           </div>
@@ -278,11 +278,11 @@ export default function QualityDetailModal({ runId, onClose }: Props) {
                               <div className="flex-1 bg-gray-200 rounded-full h-2 mr-2">
                                 <div
                                   className={`h-2 rounded-full ${getScoreColor(data.validity)}`}
-                                  style={{ width: `${data.validity}%` }}
+                                  style={{ width: `${data.validity * 100}%` }}
                                 ></div>
                               </div>
                               <span className="text-sm font-medium text-gray-900">
-                                {data.validity.toFixed(1)}%
+                                {(data.validity * 100).toFixed(1)}%
                               </span>
                             </div>
                           </div>

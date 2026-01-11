@@ -22,6 +22,9 @@ export default function ConnectorWizard({ onClose, connector, onSuccess }: Props
     config: connector?.config || {},
     schedule: connector?.schedule || '',
   });
+  const [draftConnectorId, setDraftConnectorId] = useState<string | null>(
+    connector?.id || null
+  );
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
   const [isTesting, setIsTesting] = useState(false);
 
@@ -37,7 +40,8 @@ export default function ConnectorWizard({ onClose, connector, onSuccess }: Props
   });
 
   const updateMutation = useMutation({
-    mutationFn: (data: ConnectorFormData) => updateConnector(connector!.id, data),
+    mutationFn: ({ id, data }: { id: string; data: ConnectorFormData }) =>
+      updateConnector(id, data),
     onSuccess: () => {
       toast.success('Connector updated successfully');
       onSuccess();
@@ -50,7 +54,15 @@ export default function ConnectorWizard({ onClose, connector, onSuccess }: Props
   const handleTestConnection = async () => {
     setIsTesting(true);
     try {
-      const result = await testConnection(formData);
+      let connectorId = draftConnectorId;
+
+      if (!connectorId) {
+        const created = await createConnector(formData);
+        connectorId = created.id;
+        setDraftConnectorId(connectorId);
+      }
+
+      const result = await testConnection(connectorId);
       setTestResult(result);
       if (result.success) {
         toast.success('Connection test successful');
@@ -66,8 +78,8 @@ export default function ConnectorWizard({ onClose, connector, onSuccess }: Props
   };
 
   const handleSubmit = () => {
-    if (connector) {
-      updateMutation.mutate(formData);
+    if (connector || draftConnectorId) {
+      updateMutation.mutate({ id: (connector?.id || draftConnectorId) as string, data: formData });
     } else {
       createMutation.mutate(formData);
     }
@@ -413,7 +425,7 @@ export default function ConnectorWizard({ onClose, connector, onSuccess }: Props
                   Saving...
                 </>
               ) : (
-                'Create Connector'
+                connector || draftConnectorId ? 'Save Connector' : 'Create Connector'
               )
             ) : (
               <>

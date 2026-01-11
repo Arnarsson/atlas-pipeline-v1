@@ -6,7 +6,10 @@ interface PIITableProps {
   report: PIIReport;
 }
 
-const getConfidenceBadge = (confidence: number) => {
+const getConfidenceBadge = (confidence?: number) => {
+  if (confidence === undefined) {
+    return 'bg-gray-100 text-gray-800';
+  }
   if (confidence >= 0.95) {
     return 'bg-green-100 text-green-800';
   } else if (confidence >= 0.85) {
@@ -203,10 +206,10 @@ export default function PIITable({ report }: PIITableProps) {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      Row {detection.location.row}, Col: {detection.location.column}
+                      Row {detection.location.row ?? '—'}, Col: {detection.location.column || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-mono">
-                      {detection.matched_text}
+                      {detection.matched_text || '—'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
@@ -214,7 +217,9 @@ export default function PIITable({ report }: PIITableProps) {
                           detection.confidence
                         )}`}
                       >
-                        {Math.round(detection.confidence * 100)}%
+                        {detection.confidence !== undefined
+                          ? `${Math.round(detection.confidence * 100)}%`
+                          : 'N/A'}
                       </span>
                     </td>
                   </motion.tr>

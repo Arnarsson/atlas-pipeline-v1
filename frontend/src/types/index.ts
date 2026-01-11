@@ -2,16 +2,18 @@
 export interface PipelineRun {
   run_id: string;
   dataset_name: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  created_at: string;
+  status: 'queued' | 'pending' | 'running' | 'completed' | 'failed' | 'error' | 'unknown';
+  created_at?: string;
   completed_at?: string;
-  quality_score?: number;
+  current_step?: string | null;
+  filename?: string;
+  quality_score?: number; // 0-1
   pii_detections?: number;
 }
 
 export interface QualityMetrics {
   run_id: string;
-  overall_score: number;
+  overall_score: number; // 0-1
   dimensions: {
     completeness: DimensionMetrics;
     uniqueness: DimensionMetrics;
@@ -21,19 +23,20 @@ export interface QualityMetrics {
     timeliness: DimensionMetrics;
   };
   column_metrics: Record<string, ColumnMetrics>;
+  details?: Record<string, any>;
 }
 
 export interface DimensionMetrics {
-  score: number;
-  threshold: number;
+  score: number; // 0-1
+  threshold: number; // 0-1
   passed: boolean;
   details: Record<string, any>;
 }
 
 export interface ColumnMetrics {
-  completeness: number;
-  uniqueness: number;
-  validity: number;
+  completeness: number; // 0-1
+  uniqueness: number; // 0-1
+  validity: number; // 0-1
   data_type: string;
   null_count: number;
   unique_count: number;
@@ -42,17 +45,18 @@ export interface ColumnMetrics {
 export interface PIIDetection {
   entity_type: string;
   location: {
-    row: number;
-    column: string;
+    row?: number;
+    column?: string;
   };
-  confidence: number;
-  matched_text: string;
-  start: number;
-  end: number;
+  confidence?: number;
+  matched_text?: string;
+  start?: number;
+  end?: number;
 }
 
 export interface PIIReport {
   run_id: string;
+  dataset_name?: string;
   total_detections: number;
   detections_by_type: Record<string, number>;
   detections: PIIDetection[];
@@ -64,11 +68,11 @@ export interface Connector {
   id: string;
   name: string;
   type: 'postgresql' | 'mysql' | 'rest_api' | 'csv' | 'json';
-  config: ConnectorConfig;
-  schedule?: string;
+  config?: ConnectorConfig;
+  schedule?: string | null;
   status: 'active' | 'inactive' | 'error';
-  last_sync?: string;
-  created_at: string;
+  last_sync?: string | null;
+  created_at?: string;
 }
 
 export interface ConnectorConfig {
@@ -108,7 +112,7 @@ export interface ConnectorFormData {
 // Dashboard Stats
 export interface DashboardStats {
   total_runs: number;
-  avg_quality_score: number;
+  avg_quality_score: number; // 0-1
   total_pii_detections: number;
   active_connectors: number;
   recent_runs: PipelineRun[];
@@ -123,10 +127,10 @@ export interface Dataset {
   id: string;
   name: string;
   description?: string;
-  layer: 'explore' | 'chart' | 'navigate';
+  layer: 'explore' | 'chart' | 'navigate' | 'unknown';
   schema: DatasetSchema[];
   row_count_estimate?: number;
-  quality_score?: number;
+  quality_score?: number; // 0-1
   tags: string[];
   created_at: string;
   updated_at: string;
@@ -141,10 +145,10 @@ export interface DatasetSchema {
 
 export interface QualityHistory {
   timestamp: string;
-  overall_score: number;
-  completeness: number;
-  uniqueness: number;
-  validity: number;
+  overall_score: number; // 0-1
+  completeness: number; // 0-1
+  uniqueness: number; // 0-1
+  validity: number; // 0-1
 }
 
 // Feature Store Types
@@ -179,9 +183,9 @@ export interface FeatureVersion {
 export interface GDPRRequest {
   id: string;
   subject_identifier: string;
-  identifier_type: 'email' | 'phone' | 'ssn' | 'customer_id';
+  identifier_type?: 'email' | 'phone' | 'ssn' | 'customer_id' | 'unknown';
   request_type: 'export' | 'delete' | 'rectify';
-  status: 'pending' | 'processing' | 'completed' | 'failed';
+  status: 'pending' | 'processing' | 'completed' | 'failed' | 'warning';
   created_at: string;
   completed_at?: string;
   reason?: string;

@@ -347,7 +347,7 @@ export default function GDPR() {
                           <div className="text-sm font-medium text-gray-900">
                             {request.subject_identifier}
                           </div>
-                          <div className="text-sm text-gray-500">{request.identifier_type}</div>
+                          <div className="text-sm text-gray-500">{request.identifier_type || 'unknown'}</div>
                         </div>
                       </div>
                     </td>
