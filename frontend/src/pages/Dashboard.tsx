@@ -19,8 +19,9 @@ export default function Dashboard() {
     queryFn: getDashboardStats,
     refetchInterval: 30000, // Refresh every 30 seconds
     retry: false, // Don't retry if endpoint doesn't exist
-    onError: () => {
+    meta: {
       // Silently handle errors - dashboard will show zeros
+      errorMessage: 'Failed to load dashboard stats',
     },
   });
 

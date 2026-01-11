@@ -103,7 +103,7 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
     <div className="w-full max-w-2xl mx-auto">
       <form onSubmit={handleSubmit} className="space-y-6" data-testid="csv-upload-form">
         {/* Dropzone */}
-        <motion.div
+        <div
           {...getRootProps()}
           data-testid="csv-dropzone"
           className={`relative border-2 border-dashed rounded-2xl p-12 text-center cursor-pointer transition-all duration-300 overflow-hidden ${
@@ -113,8 +113,6 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
               ? 'border-green-500 bg-gradient-to-br from-green-50 to-emerald-50 shadow-lg'
               : 'border-gray-300 hover:border-primary-400 hover:bg-gradient-to-br hover:from-gray-50 hover:to-blue-50 hover:shadow-md'
           }`}
-          whileHover={{ scale: file ? 1 : 1.02 }}
-          whileTap={{ scale: 0.98 }}
         >
           <input {...getInputProps()} data-testid="csv-file-input" />
 
@@ -253,7 +251,7 @@ export default function CSVDropzone({ onUploadSuccess }: CSVDropzoneProps) {
               </motion.div>
             )}
           </AnimatePresence>
-        </motion.div>
+        </div>
 
         {/* Dataset Name Input */}
         <AnimatePresence>

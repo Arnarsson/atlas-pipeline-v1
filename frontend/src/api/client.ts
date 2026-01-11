@@ -58,7 +58,7 @@ const normalizeColumnMetrics = (rawQuality: any): Record<string, ColumnMetrics> 
     const dimDetails = allDimensions[dimension]?.details || {};
     const columnKey = `column_${dimension}`;
     if (dimDetails[columnKey]) {
-      for (const [col, colData] of Object.entries(dimDetails[columnKey])) {
+      for (const [col, colData] of Object.entries(dimDetails[columnKey]) as [string, any][]) {
         if (!columns[col]) {
           columns[col] = {
             completeness: 1,
@@ -70,13 +70,13 @@ const normalizeColumnMetrics = (rawQuality: any): Record<string, ColumnMetrics> 
           };
         }
         if (dimension === 'completeness') {
-          columns[col].completeness = colData?.completeness ?? columns[col].completeness;
-          columns[col].null_count = colData?.missing_count ?? columns[col].null_count;
+          columns[col].completeness = (colData as any)?.completeness ?? columns[col].completeness;
+          columns[col].null_count = (colData as any)?.missing_count ?? columns[col].null_count;
         } else if (dimension === 'uniqueness') {
-          columns[col].uniqueness = colData?.uniqueness ?? columns[col].uniqueness;
-          columns[col].unique_count = colData?.unique_count ?? columns[col].unique_count;
+          columns[col].uniqueness = (colData as any)?.uniqueness ?? columns[col].uniqueness;
+          columns[col].unique_count = (colData as any)?.unique_count ?? columns[col].unique_count;
         } else if (dimension === 'validity') {
-          columns[col].validity = colData?.validity ?? columns[col].validity;
+          columns[col].validity = (colData as any)?.validity ?? columns[col].validity;
         }
       }
     }
@@ -84,28 +84,29 @@ const normalizeColumnMetrics = (rawQuality: any): Record<string, ColumnMetrics> 
 
   // Week 2 fallback
   const basicColumns = details.column_details || {};
-  for (const [col, colData] of Object.entries(basicColumns)) {
+  for (const [col, colData] of Object.entries(basicColumns) as [string, any][]) {
     if (!columns[col]) {
       columns[col] = {
         completeness: 1,
         uniqueness: 1,
         validity: 1,
-        data_type: String(colData?.dtype ?? 'unknown'),
+        data_type: String((colData as any)?.dtype ?? 'unknown'),
         null_count: 0,
         unique_count: 0,
       };
     }
-    if (typeof colData?.missing_percentage === 'number') {
-      columns[col].completeness = Math.max(0, Math.min(1, 1 - colData.missing_percentage));
+    const data = colData as any;
+    if (typeof data?.missing_percentage === 'number') {
+      columns[col].completeness = Math.max(0, Math.min(1, 1 - data.missing_percentage));
     }
-    if (typeof colData?.missing_count === 'number') {
-      columns[col].null_count = colData.missing_count;
+    if (typeof data?.missing_count === 'number') {
+      columns[col].null_count = data.missing_count;
     }
-    if (typeof colData?.unique_percentage === 'number') {
-      columns[col].uniqueness = Math.max(0, Math.min(1, colData.unique_percentage));
+    if (typeof data?.unique_percentage === 'number') {
+      columns[col].uniqueness = Math.max(0, Math.min(1, data.unique_percentage));
     }
-    if (typeof colData?.unique_count === 'number') {
-      columns[col].unique_count = colData.unique_count;
+    if (typeof data?.unique_count === 'number') {
+      columns[col].unique_count = data.unique_count;
     }
   }
 
