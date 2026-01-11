@@ -11,6 +11,7 @@ from app.connectors.base import ConnectionConfig
 from app.connectors.registry import ConnectorRegistry
 from app.monitoring.health import router as health_router
 from app.monitoring.metrics import get_metrics, get_metrics_content_type, metrics_middleware
+from app.api.routes.enhanced_catalog import router as enhanced_catalog_router
 from app.pipeline.core.orchestrator import PipelineOrchestrator
 from app.scheduler.tasks import (
     delete_connector,
@@ -43,6 +44,9 @@ app.add_middleware(
 
 # Include health check router
 app.include_router(health_router)
+
+# Include enhanced catalog router (Phase 4)
+app.include_router(enhanced_catalog_router)
 
 # In-memory storage
 pipeline_runs: dict[str, dict[str, Any]] = {}

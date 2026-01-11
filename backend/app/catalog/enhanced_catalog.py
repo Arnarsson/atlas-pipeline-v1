@@ -60,7 +60,7 @@ class DatasetRating:
     user_name: str
     rating: int  # 1-5 stars
     review_text: str | None = None
-    created_at: datetime
+    created_at: datetime = field(default_factory=datetime.utcnow)
 
 
 @dataclass
@@ -69,11 +69,11 @@ class DatasetAnnotation:
 
     annotation_id: str
     dataset_id: str
-    column_name: str | None  # None means dataset-level annotation
     annotation_type: str  # "note", "warning", "deprecated", "recommendation"
     annotation_text: str
     created_by: str
-    created_at: datetime
+    created_at: datetime = field(default_factory=datetime.utcnow)
+    column_name: str | None = None  # None means dataset-level annotation
 
 
 @dataclass
@@ -257,9 +257,10 @@ class EnhancedDataCatalog(DataCatalog):
         # Sort by relevance descending
         results.sort(key=lambda r: r.relevance_score, reverse=True)
 
+        top_score = results[0].relevance_score if results else 0.0
         logger.info(
             f"Smart search: query='{query}', found={len(results)} results, "
-            f"top_score={results[0].relevance_score:.3f if results else 0}"
+            f"top_score={top_score:.3f}"
         )
 
         return results[:limit]
