@@ -12,6 +12,7 @@ dist/
 build/
 test-results/
 playwright-report/
+frontend/tests/e2e/results/
 
 # Environment
 .env

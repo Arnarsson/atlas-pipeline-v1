@@ -11,6 +11,7 @@ from app.connectors.base import ConnectionConfig
 from app.connectors.registry import ConnectorRegistry
 from app.pipeline.core.orchestrator import PipelineOrchestrator
 from app.api.routes.quality import transform_quality_metrics, transform_pii_report
+from app.api.routes.dashboard import _summarize_runs
 from app.scheduler.tasks import (
     delete_connector,
     get_connector,
@@ -245,6 +246,20 @@ async def delete_pipeline_run(run_id: str) -> dict[str, str]:
     del pipeline_runs[run_id]
 
     return {"message": f"Pipeline run {run_id} deleted successfully"}
+
+
+@app.get("/dashboard/stats")
+async def get_dashboard_stats() -> dict[str, Any]:
+    """High-level dashboard statistics for the UI."""
+    stats = _summarize_runs(pipeline_runs)
+
+    try:
+        connectors = list_connectors()
+        stats["active_connectors"] = sum(1 for c in connectors if c.get("enabled", True))
+    except Exception:
+        stats["active_connectors"] = 0
+
+    return stats
 
 
 @app.get("/quality/metrics/{run_id}")
