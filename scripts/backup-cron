@@ -1,0 +1,13 @@
+# Atlas Data Pipeline - Automated Backup Cron Jobs
+# ============================================================================
+# Installation: crontab -e and add these lines
+# ============================================================================
+
+# Daily backups at 2 AM (retained for 30 days)
+0 2 * * * /app/scripts/backup.sh daily >> /var/log/atlas/backup.log 2>&1
+
+# Weekly backups on Sunday at 3 AM (retained for 90 days)
+0 3 * * 0 RETENTION_DAYS=90 /app/scripts/backup.sh weekly >> /var/log/atlas/backup.log 2>&1
+
+# Monthly backups on 1st of month at 4 AM (retained for 365 days)
+0 4 1 * * RETENTION_DAYS=365 /app/scripts/backup.sh monthly >> /var/log/atlas/backup.log 2>&1
