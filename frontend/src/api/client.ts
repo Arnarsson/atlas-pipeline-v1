@@ -7,6 +7,8 @@ import type {
   ConnectorFormData,
   SyncHistory,
   DashboardStats,
+  DimensionMetrics,
+  ColumnMetrics,
 } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
@@ -16,6 +18,138 @@ export const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+});
+
+const QUALITY_THRESHOLDS: Record<keyof QualityMetrics['dimensions'], number> = {
+  completeness: 0.95,
+  uniqueness: 0.98,
+  validity: 0.9,
+  consistency: 0.9,
+  accuracy: 0.9,
+  timeliness: 0.8,
+};
+
+const normalizeDimension = (
+  raw: any,
+  key: keyof QualityMetrics['dimensions'],
+  fallbackScore: number
+): DimensionMetrics => {
+  const score =
+    typeof raw?.score === 'number' ? raw.score : typeof raw === 'number' ? raw : fallbackScore;
+  const threshold =
+    typeof raw?.threshold === 'number' ? raw.threshold : QUALITY_THRESHOLDS[key] ?? 0;
+  const passed = typeof raw?.passed === 'boolean' ? raw.passed : score >= threshold;
+  const details = raw?.details && typeof raw.details === 'object' ? raw.details : {};
+
+  return { score, threshold, passed, details };
+};
+
+const normalizeColumnMetrics = (rawQuality: any): Record<string, ColumnMetrics> => {
+  if (rawQuality?.column_metrics && typeof rawQuality.column_metrics === 'object') {
+    return rawQuality.column_metrics;
+  }
+
+  const details = rawQuality?.details || {};
+  const allDimensions = details.all_dimensions || {};
+  const columns: Record<string, ColumnMetrics> = {};
+
+  // Try week 3 format
+  for (const dimension of ['completeness', 'uniqueness', 'validity']) {
+    const dimDetails = allDimensions[dimension]?.details || {};
+    const columnKey = `column_${dimension}`;
+    if (dimDetails[columnKey]) {
+      for (const [col, colData] of Object.entries(dimDetails[columnKey])) {
+        if (!columns[col]) {
+          columns[col] = {
+            completeness: 1,
+            uniqueness: 1,
+            validity: 1,
+            data_type: 'unknown',
+            null_count: 0,
+            unique_count: 0,
+          };
+        }
+        if (dimension === 'completeness') {
+          columns[col].completeness = colData?.completeness ?? columns[col].completeness;
+          columns[col].null_count = colData?.missing_count ?? columns[col].null_count;
+        } else if (dimension === 'uniqueness') {
+          columns[col].uniqueness = colData?.uniqueness ?? columns[col].uniqueness;
+          columns[col].unique_count = colData?.unique_count ?? columns[col].unique_count;
+        } else if (dimension === 'validity') {
+          columns[col].validity = colData?.validity ?? columns[col].validity;
+        }
+      }
+    }
+  }
+
+  // Week 2 fallback
+  const basicColumns = details.column_details || {};
+  for (const [col, colData] of Object.entries(basicColumns)) {
+    if (!columns[col]) {
+      columns[col] = {
+        completeness: 1,
+        uniqueness: 1,
+        validity: 1,
+        data_type: String(colData?.dtype ?? 'unknown'),
+        null_count: 0,
+        unique_count: 0,
+      };
+    }
+    if (typeof colData?.missing_percentage === 'number') {
+      columns[col].completeness = Math.max(0, Math.min(1, 1 - colData.missing_percentage));
+    }
+    if (typeof colData?.missing_count === 'number') {
+      columns[col].null_count = colData.missing_count;
+    }
+    if (typeof colData?.unique_percentage === 'number') {
+      columns[col].uniqueness = Math.max(0, Math.min(1, colData.unique_percentage));
+    }
+    if (typeof colData?.unique_count === 'number') {
+      columns[col].unique_count = colData.unique_count;
+    }
+  }
+
+  return columns;
+};
+
+const normalizeQualityMetrics = (raw: any): QualityMetrics => {
+  const dimensionsRaw =
+    raw?.dimensions ||
+    raw?.details?.all_dimensions || {
+      completeness: raw?.completeness_score,
+      uniqueness: raw?.uniqueness_score,
+      validity: raw?.validity_score,
+      consistency: raw?.consistency_score,
+      accuracy: raw?.accuracy_score,
+      timeliness: raw?.timeliness_score,
+    };
+
+  const dimensions = {
+    completeness: normalizeDimension(dimensionsRaw?.completeness, 'completeness', raw?.completeness_score ?? 0),
+    uniqueness: normalizeDimension(dimensionsRaw?.uniqueness, 'uniqueness', raw?.uniqueness_score ?? 0),
+    validity: normalizeDimension(dimensionsRaw?.validity, 'validity', raw?.validity_score ?? 0),
+    consistency: normalizeDimension(dimensionsRaw?.consistency, 'consistency', raw?.consistency_score ?? 0),
+    accuracy: normalizeDimension(dimensionsRaw?.accuracy, 'accuracy', raw?.accuracy_score ?? 0),
+    timeliness: normalizeDimension(dimensionsRaw?.timeliness, 'timeliness', raw?.timeliness_score ?? 0),
+  };
+
+  return {
+    run_id: raw?.run_id,
+    dataset_name: raw?.dataset_name,
+    overall_score: raw?.overall_score ?? 0,
+    dimensions,
+    column_metrics: normalizeColumnMetrics(raw),
+  };
+};
+
+const normalizePIIReport = (raw: any): PIIReport => ({
+  run_id: raw?.run_id,
+  dataset_name: raw?.dataset_name || 'unknown',
+  total_detections: raw?.total_detections ?? 0,
+  detections_by_type: raw?.detections_by_type || {},
+  detections: raw?.detections || [],
+  compliance_status: raw?.compliance_status || 'compliant',
+  recommendations: raw?.recommendations || [],
 });
 
 // Pipeline endpoints
@@ -45,12 +179,12 @@ export const getRecentRuns = async (limit: number = 10): Promise<PipelineRun[]> 
 // Quality endpoints
 export const getQualityMetrics = async (runId: string): Promise<QualityMetrics> => {
   const response = await api.get(`/quality/metrics/${runId}`);
-  return response.data;
+  return normalizeQualityMetrics(response.data);
 };
 
 export const getPIIReport = async (runId: string): Promise<PIIReport> => {
   const response = await api.get(`/quality/pii-report/${runId}`);
-  return response.data;
+  return normalizePIIReport(response.data);
 };
 
 export const getComplianceReport = async (runId: string) => {

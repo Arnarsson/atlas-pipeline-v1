@@ -47,6 +47,8 @@ def _summarize_runs(runs: dict[str, dict[str, Any]]) -> dict[str, Any]:
                 "current_step": run.get("current_step"),
                 "quality_score": _quality_score(run),
                 "pii_detections": _pii_count(run),
+                "created_at": run.get("created_at") or run.get("started_at") or "",
+                "completed_at": run.get("completed_at") or "",
             }
         )
 

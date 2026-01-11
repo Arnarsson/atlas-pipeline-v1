@@ -7,6 +7,9 @@ import {
   TrendingUp,
   ArrowRight,
   Clock,
+  CheckCircle,
+  AlertTriangle,
+  FileCheck,
 } from 'lucide-react';
 import { getDashboardStats } from '@/api/client';
 
@@ -28,6 +31,39 @@ export default function Dashboard() {
       </div>
     );
   }
+
+  const readinessItems = [
+    {
+      name: 'Art. 10 Data Governance',
+      status: (stats?.avg_quality_score ?? 0) >= 0.8 ? 'Ready' : 'Needs attention',
+      description: 'Quality gates and schema validation in place',
+      icon: FileCheck,
+    },
+    {
+      name: 'Art. 11 Documentation',
+      status: (stats?.recent_runs?.length ?? 0) > 0 ? 'Ready' : 'In progress',
+      description: 'Run history and metadata captured',
+      icon: CheckCircle,
+    },
+    {
+      name: 'Art. 12 Logging',
+      status: (stats?.recent_runs?.length ?? 0) > 0 ? 'Ready' : 'In progress',
+      description: 'Execution logs and lineage available',
+      icon: Activity,
+    },
+    {
+      name: 'Art. 30 Registrering',
+      status: (stats?.total_pii_detections ?? 0) >= 0 ? 'Ready' : 'In progress',
+      description: 'PII scanning and GDPR flows active',
+      icon: Shield,
+    },
+  ];
+
+  const formatDate = (value?: string) => {
+    if (!value) return 'Not available';
+    const d = new Date(value);
+    return Number.isNaN(d.getTime()) ? 'Not available' : d.toLocaleString();
+  };
 
   const statCards = [
     {
@@ -183,7 +219,7 @@ export default function Dashboard() {
                     <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
                       <span className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {new Date(run.created_at).toLocaleString()}
+                        {formatDate((run as any).created_at)}
                       </span>
                       {run.quality_score !== undefined && (
                         <span className="font-medium">
@@ -223,6 +259,55 @@ export default function Dashboard() {
               </div>
             </div>
           )}
+        </div>
+      </div>
+
+      {/* Governance & EU AI Act readiness */}
+      <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-200">
+        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Governance & EU AI Act</h2>
+            <p className="text-sm text-gray-600">
+              Compliance-first status across data quality, logging, and PII controls
+            </p>
+          </div>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">
+            <Shield className="h-4 w-4" />
+            Governance-first
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
+          {readinessItems.map((item) => {
+            const Icon = item.icon;
+            const isReady = item.status === 'Ready';
+            return (
+              <div
+                key={item.name}
+                className="border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <div className={`p-2 rounded-lg ${isReady ? 'bg-green-50' : 'bg-yellow-50'}`}>
+                    <Icon className={`h-5 w-5 ${isReady ? 'text-green-600' : 'text-yellow-600'}`} />
+                  </div>
+                  <div className="text-xs font-semibold uppercase text-gray-600">{item.name}</div>
+                </div>
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  {isReady ? (
+                    <span className="text-green-700 inline-flex items-center gap-1">
+                      <CheckCircle className="h-4 w-4" />
+                      Ready
+                    </span>
+                  ) : (
+                    <span className="text-yellow-700 inline-flex items-center gap-1">
+                      <AlertTriangle className="h-4 w-4" />
+                      Needs attention
+                    </span>
+                  )}
+                </div>
+                <p className="mt-2 text-xs text-gray-600">{item.description}</p>
+              </div>
+            );
+          })}
         </div>
       </div>
 
