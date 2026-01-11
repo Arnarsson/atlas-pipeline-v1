@@ -1,26 +1,27 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
-**Last Updated**: January 11, 2026, 22:30
-**Status**: ✅ **100% COMPLETE** (Atlas Data Pipeline Standard)
+**Last Updated**: January 11, 2026, 23:15
+**Status**: 📋 **PHASE 5 PLANNED** - Airbyte Connector Integration
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
-**Session**: Phase 1 + 2 + 3 + 4 Complete | 100% Complete Platform
-**Achievement**: Enterprise-Ready Data Pipeline with Advanced Features
+**Session**: Phase 1-4 Complete | Phase 5 Ready to Start
+**Achievement**: Enterprise-Ready Data Pipeline + Airbyte Integration Plan
 
 ---
 
 ## 🎯 Current Status
 
-### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 1-4)**
+### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 1-4) + Phase 5 Planned**
 
-**Progress**: 100% of Atlas Data Pipeline Standard ✅
+**Progress**: 100% of Atlas Data Pipeline Standard ✅ | Phase 5: Airbyte Integration Planned
 **Code**: ~50,000+ lines (Backend + Frontend + Database + Tests + Docs)
 **Tests**: 206+ total (82 backend ✅ + 124 frontend E2E)
 **Repository**: https://github.com/Arnarsson/atlas-pipeline-v1
 
 **Phase Breakdown**:
-- Phase 1-2: Core Pipeline + Connectors (84% complete)
-- Phase 3: Production Hardening (95% complete)
+- Phase 1-2: Core Pipeline + Connectors (100% complete)
+- Phase 3: Production Hardening (100% complete)
 - Phase 4: Advanced Features (100% complete)
+- **Phase 5: Airbyte Connector Integration (📋 PLANNED - 4 weeks)**
 
 **Directory Structure**:
 ```
@@ -207,6 +208,191 @@ atlas_pipeline (database)
 - `frontend/src/components/Lineage/LineageGraph.tsx` (380 lines)
 
 **Total**: 2,760+ lines of advanced functionality
+
+---
+
+## 🔌 Phase 5: Airbyte Connector Integration (PLANNED)
+
+**Status**: 📋 Planning Complete - Ready for Implementation
+**Plan Document**: `/home/sven/.claude/plans/tranquil-stirring-rabbit.md`
+**Estimated Timeline**: 4 weeks (20 working days)
+**Target**: Replace custom connectors with Airbyte's production-grade system
+
+### **Objective**
+Integrate Airbyte's connector system (100+ pre-built connectors) to replace Atlas's 5 custom connector implementations, providing:
+- **100+ Production-Tested Connectors**: PostgreSQL, MySQL, MongoDB, Salesforce, Stripe, HubSpot, Shopify, etc.
+- **Built-in CDC**: Change Data Capture for databases
+- **Standardized Protocol**: AirbyteMessage format (RECORD, STATE, CATALOG, SPEC, TRACE)
+- **State Management**: Automatic checkpoint saving for incremental syncs
+- **Community Support**: Regular updates and new connector releases
+
+### **Implementation Strategy: Full Replacement**
+
+**Why Full Replacement?**
+- Access to 100+ connectors immediately vs maintaining 5 custom ones
+- Standardized protocol reduces maintenance burden
+- Built-in CDC, state management, schema evolution
+- Community-tested by 10,000+ companies
+- Long-term sustainability
+
+**Architecture**:
+```
+Atlas Pipeline
+├── Airbyte Protocol Layer (NEW)
+│   ├── AirbyteMessage Models (Pydantic)
+│   ├── Docker Connector Executor
+│   ├── State Manager (PostgreSQL)
+│   └── Connector Registry (100+ images)
+├── Connector Adapter (NEW)
+│   └── AirbyteSourceAdapter (implements SourceConnector interface)
+├── Existing Atlas Components (UNCHANGED)
+│   ├── Pipeline Orchestrator
+│   ├── PII Detection (Presidio)
+│   ├── Quality Validation (Soda)
+│   └── Explore/Chart/Navigate Layers
+```
+
+### **7 Implementation Phases**
+
+**Week 1: Core Infrastructure**
+- Install dependencies (airbyte-api, airbyte-cdk, docker, pydantic)
+- Create AirbyteMessage protocol models
+- Build Docker connector executor
+- Implement state manager with PostgreSQL persistence
+
+**Week 2: Integration**
+- Create connector adapter (Airbyte → Atlas interface)
+- Build connector registry (100+ source mappings)
+- Update database schema (migration 008)
+- Update API endpoints (connectors CRUD)
+
+**Week 3: Migration**
+- Migrate PostgreSQL connectors to Airbyte
+- Migrate MySQL connectors
+- Migrate REST API connectors
+- Convert state format (Atlas → Airbyte)
+
+**Week 4: Testing & Documentation**
+- Unit tests for adapter and executor
+- Integration tests for complete sync flow
+- Performance testing (>10k records/sec)
+- Update documentation and migration guide
+
+### **Key Technical Components**
+
+**1. AirbyteMessage Protocol** (`backend/app/connectors/airbyte/protocol.py`)
+```python
+class AirbyteMessageType(str, Enum):
+    RECORD = "RECORD"      # Data rows
+    STATE = "STATE"        # Incremental sync checkpoints
+    CATALOG = "CATALOG"    # Schema discovery
+    SPEC = "SPEC"         # Config specification
+    TRACE = "TRACE"       # Logging/errors
+```
+
+**2. Docker Executor** (`backend/app/connectors/airbyte/executor.py`)
+- Runs Airbyte connectors in Docker containers
+- Commands: CHECK (test), DISCOVER (schema), READ (data)
+- Parses STDOUT as JSON AirbyteMessage stream
+
+**3. State Manager** (`backend/app/connectors/airbyte/state_manager.py`)
+- Saves state to PostgreSQL for incremental syncs
+- Stream-level and global-level state support
+- Automatic checkpoint management
+
+**4. Connector Adapter** (`backend/app/connectors/airbyte/adapter.py`)
+- Implements Atlas's SourceConnector interface
+- Wraps Airbyte Docker execution
+- Converts between Airbyte and Atlas formats
+
+### **Database Changes**
+
+**New Tables**:
+- `pipeline.airbyte_catalogs` - Cached schema discoveries
+- `pipeline.airbyte_sync_stats` - Per-stream sync statistics
+
+**Updated Tables**:
+- `pipeline.connectors` - Add `airbyte_image`, `protocol_version` columns
+- `pipeline.connector_state` - Replace timestamp with Airbyte state format
+
+### **Success Criteria**
+
+**Functional**:
+- All 100+ Airbyte connectors available
+- Existing 5 connectors migrated successfully
+- Incremental syncs with state persistence working
+- CDC enabled for PostgreSQL and MySQL
+- Zero data loss during migration
+
+**Performance**:
+- Sync throughput: >10,000 records/sec
+- State save latency: <100ms
+- Connection test: <5 seconds
+- Support 10+ concurrent syncs
+
+**Quality**:
+- 100% test coverage on new code
+- Backward compatible API
+- Complete documentation
+- Tested rollback plan
+
+### **Risk Mitigation**
+
+**Risk**: State Migration Failures
+- **Mitigation**: Backup before migration, validate after, provide rollback scripts
+
+**Risk**: Docker Dependency
+- **Mitigation**: Document installation, provide Python SDK option in future
+
+**Risk**: Breaking Changes for Users
+- **Mitigation**: Deprecate old endpoints (90-day window), auto-migrate configs
+
+### **Post-Implementation Benefits**
+
+**Immediate**:
+- 95 additional data sources (Stripe, Shopify, HubSpot, Slack, etc.)
+- Automatic CDC for databases
+- Production-tested reliability
+
+**Long-term**:
+- No connector maintenance burden (40 hours/year saved)
+- Community updates and new connectors
+- Standardized integration patterns
+
+**ROI**:
+- Development: €12,000 (160 hours @ €75/hour)
+- Annual Savings: €3,000+ (no maintenance)
+- Payback Period: 4 months
+
+### **Files to Create** (2,500+ lines)
+
+**Backend**:
+- `backend/app/connectors/airbyte/protocol.py` (200 lines)
+- `backend/app/connectors/airbyte/executor.py` (350 lines)
+- `backend/app/connectors/airbyte/state_manager.py` (180 lines)
+- `backend/app/connectors/airbyte/adapter.py` (420 lines)
+- `backend/app/connectors/airbyte/registry.py` (150 lines)
+- `backend/database/migrations/008_airbyte_integration.sql` (120 lines)
+
+**Scripts**:
+- `backend/scripts/migrate_postgres_connectors.py` (200 lines)
+- `backend/scripts/migrate_connector_state.py` (150 lines)
+- `backend/scripts/verify_airbyte_connectors.py` (100 lines)
+
+**Tests**:
+- `backend/tests/unit/test_airbyte_adapter.py` (250 lines)
+- `backend/tests/integration/test_airbyte_integration.py` (300 lines)
+- `backend/tests/performance/test_airbyte_performance.py` (200 lines)
+
+**Documentation**:
+- `backend/docs/AIRBYTE_MIGRATION_GUIDE.md` (500 lines)
+
+### **Next Steps**
+
+1. **Start Week 1**: Install dependencies and create protocol models
+2. **Review Plan**: `/home/sven/.claude/plans/tranquil-stirring-rabbit.md`
+3. **Setup Environment**: Ensure Docker is running
+4. **Begin Implementation**: Follow 7-phase plan
 
 ---
 
