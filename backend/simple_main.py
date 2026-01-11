@@ -3,12 +3,14 @@
 from typing import Any
 from uuid import uuid4
 
-from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, HTTPException, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 from app.connectors.base import ConnectionConfig
 from app.connectors.registry import ConnectorRegistry
+from app.monitoring.health import router as health_router
+from app.monitoring.metrics import get_metrics, get_metrics_content_type, metrics_middleware
 from app.pipeline.core.orchestrator import PipelineOrchestrator
 from app.scheduler.tasks import (
     delete_connector,
@@ -27,6 +29,9 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# Add Prometheus metrics middleware
+app.add_middleware(metrics_middleware())
+
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
@@ -35,6 +40,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include health check router
+app.include_router(health_router)
 
 # In-memory storage
 pipeline_runs: dict[str, dict[str, Any]] = {}
@@ -244,6 +252,18 @@ async def delete_pipeline_run(run_id: str) -> dict[str, str]:
     del pipeline_runs[run_id]
 
     return {"message": f"Pipeline run {run_id} deleted successfully"}
+
+
+@app.get("/metrics")
+async def metrics() -> Response:
+    """Prometheus metrics endpoint.
+
+    Returns metrics in Prometheus exposition format for scraping.
+    """
+    return Response(
+        content=get_metrics(),
+        media_type=get_metrics_content_type()
+    )
 
 
 @app.get("/dashboard/stats")

@@ -1,0 +1,169 @@
+# Alert rules for Atlas Data Pipeline Platform
+
+groups:
+  - name: atlas_pipeline_alerts
+    interval: 30s
+    rules:
+      # High error rate on API endpoints
+      - alert: HighHTTPErrorRate
+        expr: |
+          (
+            sum(rate(atlas_http_requests_total{status=~"5.."}[5m]))
+            /
+            sum(rate(atlas_http_requests_total[5m]))
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: api
+        annotations:
+          summary: "High HTTP error rate detected"
+          description: "More than 5% of HTTP requests are failing (current: {{ $value | humanizePercentage }})"
+
+      # Pipeline failures
+      - alert: PipelineFailureRate
+        expr: |
+          (
+            sum(rate(atlas_pipeline_runs_total{status="failed"}[10m]))
+            /
+            sum(rate(atlas_pipeline_runs_total[10m]))
+          ) > 0.10
+        for: 10m
+        labels:
+          severity: critical
+          component: pipeline
+        annotations:
+          summary: "High pipeline failure rate"
+          description: "More than 10% of pipeline runs are failing (current: {{ $value | humanizePercentage }})"
+
+      # Quality score degradation
+      - alert: LowQualityScore
+        expr: atlas_quality_score < 0.80
+        for: 15m
+        labels:
+          severity: warning
+          component: quality
+        annotations:
+          summary: "Data quality score below threshold"
+          description: "Quality score for {{ $labels.dataset_name }} dimension {{ $labels.dimension }} is {{ $value | humanizePercentage }} (threshold: 80%)"
+
+      # High PII detection rate (possible data leak)
+      - alert: HighPIIDetectionRate
+        expr: |
+          sum(rate(atlas_pii_detections_total[5m])) > 100
+        for: 10m
+        labels:
+          severity: critical
+          component: compliance
+        annotations:
+          summary: "Unusually high PII detection rate"
+          description: "Detecting {{ $value }} PII instances per second - possible data leak or misconfiguration"
+
+      # Connector sync failures
+      - alert: ConnectorSyncFailures
+        expr: |
+          sum(rate(atlas_connector_syncs_total{status="failed"}[10m])) > 0
+        for: 10m
+        labels:
+          severity: warning
+          component: connectors
+        annotations:
+          summary: "Connector sync failures detected"
+          description: "Connector {{ $labels.connector_type }}/{{ $labels.source_name }} is failing syncs"
+
+      # Slow API response times
+      - alert: SlowAPIResponses
+        expr: |
+          histogram_quantile(0.95,
+            rate(atlas_http_request_duration_seconds_bucket[5m])
+          ) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "API response times degraded"
+          description: "95th percentile response time for {{ $labels.endpoint }} is {{ $value }}s (threshold: 2s)"
+
+      # Database connection pool exhaustion
+      - alert: DatabaseConnectionPoolExhausted
+        expr: |
+          atlas_database_connections_active > 18
+        for: 5m
+        labels:
+          severity: critical
+          component: database
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Connection pool {{ $labels.pool }} has {{ $value }} active connections (max: 20)"
+
+      # GDPR request backlog
+      - alert: GDPRRequestBacklog
+        expr: |
+          atlas_gdpr_requests_pending > 50
+        for: 30m
+        labels:
+          severity: warning
+          component: compliance
+        annotations:
+          summary: "GDPR request backlog building up"
+          description: "{{ $value }} pending GDPR {{ $labels.request_type }} requests"
+
+      # Celery task queue buildup
+      - alert: TaskQueueBacklog
+        expr: |
+          atlas_tasks_queued > 100
+        for: 15m
+        labels:
+          severity: warning
+          component: scheduler
+        annotations:
+          summary: "Task queue backlog detected"
+          description: "{{ $value }} tasks queued in {{ $labels.queue_name }}"
+
+      # System errors spiking
+      - alert: SystemErrorsHigh
+        expr: |
+          sum(rate(atlas_system_errors_total[5m])) > 1
+        for: 10m
+        labels:
+          severity: warning
+          component: system
+        annotations:
+          summary: "System error rate elevated"
+          description: "{{ $value }} errors/second in {{ $labels.component }} ({{ $labels.error_type }})"
+
+  - name: atlas_sla_alerts
+    interval: 60s
+    rules:
+      # API availability SLA (99.9% uptime)
+      - alert: APIAvailabilitySLABreach
+        expr: |
+          (
+            sum(rate(atlas_http_requests_total{status!~"5.."}[1h]))
+            /
+            sum(rate(atlas_http_requests_total[1h]))
+          ) < 0.999
+        for: 5m
+        labels:
+          severity: critical
+          component: sla
+        annotations:
+          summary: "API availability SLA breach"
+          description: "API availability is {{ $value | humanizePercentage }} over the last hour (SLA: 99.9%)"
+
+      # Pipeline success rate SLA (95%)
+      - alert: PipelineSuccessSLABreach
+        expr: |
+          (
+            sum(rate(atlas_pipeline_runs_total{status="completed"}[1h]))
+            /
+            sum(rate(atlas_pipeline_runs_total[1h]))
+          ) < 0.95
+        for: 15m
+        labels:
+          severity: critical
+          component: sla
+        annotations:
+          summary: "Pipeline success rate SLA breach"
+          description: "Pipeline success rate is {{ $value | humanizePercentage }} over the last hour (SLA: 95%)"

@@ -1,0 +1,68 @@
+# Prometheus configuration for Atlas Data Pipeline Platform
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: 'production'
+    service: 'atlas-pipeline'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Rule files
+rule_files:
+  - 'alerts/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Atlas Data Pipeline Backend
+  - job_name: 'atlas-backend'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets:
+          - 'atlas-backend:8000'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'atlas-backend'
+
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets:
+          - 'localhost:9090'
+
+  # PostgreSQL exporter (if configured)
+  - job_name: 'postgres'
+    static_configs:
+      - targets:
+          - 'postgres-exporter:9187'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'atlas-database'
+
+  # Redis exporter (if configured)
+  - job_name: 'redis'
+    static_configs:
+      - targets:
+          - 'redis-exporter:9121'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'atlas-redis'
+
+  # Node exporter for system metrics (if configured)
+  - job_name: 'node'
+    static_configs:
+      - targets:
+          - 'node-exporter:9100'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'atlas-host'
