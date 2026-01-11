@@ -1,10 +1,10 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
-**Last Updated**: January 11, 2026, 18:00
-**Status**: ✅ **PRODUCTION-READY** (84% Atlas Data Pipeline Standard)
+**Last Updated**: January 11, 2026, 19:30
+**Status**: ✅ **PRODUCTION-READY** (90% Atlas Data Pipeline Standard)
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
-**Session**: Phase 1 Integration Complete | Starting Phase 2: Connectors
-**Next**: Google Sheets connector (4h) + Salesforce connector (6h) → 90% complete
+**Session**: Phase 1 + Phase 2 Complete | 5 Connectors Operational
+**Next**: Production hardening (monitoring, CI/CD) → 95% complete
 
 ---
 
@@ -629,19 +629,19 @@ npm install  # Frontend
 - Monitor quality scores
 - Handle GDPR requests
 
-### **Option 2: Week 8 - Production Deployment**
-- Docker deployment packaging
-- Kubernetes manifests
-- Monitoring (Prometheus + Grafana)
-- CI/CD setup
-- Backup/restore automation
-- **Estimated**: 40 hours
+### **Option 2: Week 8 - Production Deployment** (NOW RECOMMENDED)
+- Monitoring (Prometheus + Grafana) - 10h
+- CI/CD pipeline (GitHub Actions) - 8h
+- Backup & disaster recovery - 6h
+- Advanced RBAC - 8h
+- **Estimated**: 32 hours → **95% complete**
 
-### **Option 3: Additional Features**
-- ERP/CRM connectors (40h each)
-- Real-time streaming (80h)
-- Advanced ML features (60h)
-- Advanced RBAC (40h)
+### **Option 3: Additional Features** (After Production Hardening)
+- Real-time streaming (Kafka) - 12h
+- ML model tracking - 6h
+- Data catalog enhancements - 6h
+- Custom quality rules - 8h
+- **Estimated**: 32 hours → **100% complete**
 
 ---
 
@@ -667,6 +667,84 @@ npm install  # Frontend
 ---
 
 ## 🔧 Recent Updates
+
+### **Phase 2: Connectors Complete** (Commits: 611640f, 0050e3f, Jan 11, 2026)
+✅ **NEW CONNECTORS: Google Sheets + Salesforce CRM**
+
+**Summary:**
+- ✅ **5 Total Connectors**: PostgreSQL, MySQL, REST API, Google Sheets, Salesforce
+- ✅ Google Sheets connector with service account auth (4 hours)
+- ✅ Salesforce CRM connector with OAuth2 (6 hours)
+- ✅ Comprehensive test suites for both
+- ✅ **Platform Now at 90% Atlas Data Pipeline Standard**
+
+**Google Sheets Connector:**
+- Service account JSON authentication
+- Auto-detect headers and column types
+- Support for multiple sheets in a spreadsheet
+- Incremental loading via timestamp columns
+- `list_sheets()` method for sheet discovery
+- Range support (A1 notation)
+- Type inference: numeric, datetime, boolean, string
+- **Dependencies**: google-auth, google-api-python-client
+
+**Salesforce Connector:**
+- OAuth2 access token authentication
+- SOQL query support with automatic pagination
+- All standard objects (Account, Contact, Lead, Opportunity, etc.)
+- Custom object support (ending with __c)
+- Incremental sync via `LastModifiedDate`
+- `list_objects()` for object discovery
+- Object schema inspection with field type mapping
+- Row counting with WHERE clause support
+- **Dependencies**: requests (already included)
+
+**Usage Examples:**
+```python
+# Google Sheets
+config = ConnectionConfig(
+    source_type="google_sheets",
+    source_name="sales_data",
+    additional_params={
+        "spreadsheet_id": "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        "service_account_json": json_string,
+        "sheet_name": "Q1 Sales"
+    }
+)
+
+# Salesforce
+config = ConnectionConfig(
+    source_type="salesforce",
+    source_name="crm_data",
+    additional_params={
+        "instance_url": "https://yourinstance.salesforce.com",
+        "access_token": "oauth_access_token"
+    }
+)
+connector = SalesforceConnector(config)
+accounts = await connector.get_data(table="Account")
+```
+
+**Test Coverage:**
+- `tests/connectors/test_google_sheets.py` - 10 tests
+- `tests/connectors/test_salesforce.py` - 12 tests
+- All tests passing with mocked external APIs
+
+**Files Added:**
+- `backend/app/connectors/google_sheets.py` (+370 lines)
+- `backend/app/connectors/salesforce.py` (+440 lines)
+- `backend/app/connectors/registry.py` (updated)
+- `backend/tests/connectors/test_google_sheets.py` (+175 lines)
+- `backend/tests/connectors/test_salesforce.py` (+296 lines)
+
+**Progress:**
+- Week 1-6 features: ✅ 100%
+- Week 7-8 Dashboard: ✅ 100%
+- Phase 1 Integration: ✅ 100%
+- **Phase 2 Connectors: ✅ 100%** (2/2 planned connectors added)
+- **Overall Completion: 90%** (up from 84%)
+
+---
 
 ### **Phase 1 Integration Complete** (Commit: 5cda368, Jan 11, 2026)
 ✅ **MERGED: Dashboard Stats + TypeScript Fixes**
