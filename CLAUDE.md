@@ -1,9 +1,10 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
-**Last Updated**: January 11, 2026, 16:30
+**Last Updated**: January 11, 2026, 18:00
 **Status**: ✅ **PRODUCTION-READY** (84% Atlas Data Pipeline Standard)
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
-**Session**: Complete - 7 hours initial + bug fixes, UI improvements, and API contract fixes
+**Session**: Phase 1 Integration Complete | Starting Phase 2: Connectors
+**Next**: Google Sheets connector (4h) + Salesforce connector (6h) → 90% complete
 
 ---
 
@@ -667,6 +668,40 @@ npm install  # Frontend
 
 ## 🔧 Recent Updates
 
+### **Phase 1 Integration Complete** (Commit: 5cda368, Jan 11, 2026)
+✅ **MERGED: Dashboard Stats + TypeScript Fixes**
+
+**Completed:**
+- ✅ Merged `feature/dashboard-stats` branch → Dashboard stats endpoint fully functional
+- ✅ Fixed all TypeScript build errors (frontend now builds cleanly)
+- ✅ Dashboard `/dashboard/stats` endpoint returns 5 metrics
+- ✅ Frontend client.ts has proper data normalization
+- ✅ Removed deprecated `onError` from React Query hooks
+- ✅ Build output: 986KB bundle (gzipped: 295KB)
+
+**What's New:**
+- **Dashboard Stats API**: `GET /dashboard/stats` returns:
+  - `total_runs` - Total pipeline executions
+  - `avg_quality_score` - Average quality across all runs
+  - `total_pii_detections` - Total PII findings
+  - `recent_runs` - Last 10 pipeline runs with timestamps
+  - `active_connectors` - Count of enabled connectors
+
+**Files Changed:**
+- `backend/app/api/routes/dashboard.py` (NEW) - Stats aggregation logic
+- `backend/simple_main.py` (+52 lines) - Inline stats endpoint
+- `frontend/src/pages/Dashboard.tsx` - Uses new stats endpoint
+- `frontend/src/api/client.ts` - Data normalization with proper types
+- `frontend/src/components/Upload/CSVDropzone.tsx` - Fixed type conflicts
+
+**Status:**
+- ✅ Backend tests: Dashboard endpoint verified
+- ✅ Frontend build: Successful (3.61s build time)
+- ✅ No TypeScript errors
+- ✅ Ready for Phase 2: Adding connectors
+
+---
+
 ### **Frontend API Contract Fix** (Commit: ea47ac3, Jan 11, 2026)
 ✅ **CRITICAL FIX: API Response Structure Alignment**
 
@@ -735,8 +770,9 @@ npm install  # Frontend
 ### **Known Issues** (Updated Jan 11, 2026)
 ✅ **FIXED**: Frontend console errors - API contract mismatch resolved (commit ea47ac3)
 ✅ **FIXED**: Missing quality dimensions - all 6 now display correctly
+✅ **FIXED**: Dashboard Stats 404 - endpoint now fully functional (commit 5cda368)
+✅ **FIXED**: TypeScript build errors - all resolved (commit 5cda368)
 ⚠️ **Browser Cache**: After UI updates, do a hard refresh (Ctrl+Shift+R) or use incognito mode
-⚠️ **Dashboard Stats**: `/dashboard/stats` endpoint returns 404 (not yet implemented)
 
 ### **Working Features Verified**
 ✅ CSV upload → PII detection (99% accuracy)
