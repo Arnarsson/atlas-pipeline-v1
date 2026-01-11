@@ -246,6 +246,58 @@ async def delete_pipeline_run(run_id: str) -> dict[str, str]:
     return {"message": f"Pipeline run {run_id} deleted successfully"}
 
 
+@app.get("/dashboard/stats")
+async def get_dashboard_stats() -> dict[str, Any]:
+    """High-level dashboard statistics for the UI."""
+    total_runs = len(pipeline_runs)
+
+    def _quality_score(run: dict[str, Any]) -> float:
+        results = run.get("results") or {}
+        quality = results.get("quality") or {}
+        return float(quality.get("overall_score") or 0.0)
+
+    def _pii_count(run: dict[str, Any]) -> int:
+        results = run.get("results") or {}
+        pii = results.get("pii") or {}
+        findings = pii.get("findings") or []
+        return len(findings)
+
+    completed = [run for run in pipeline_runs.values() if run.get("status") == "completed"]
+    avg_quality_score = (
+        sum(_quality_score(run) for run in completed) / len(completed)
+        if completed else 0.0
+    )
+    total_pii_detections = sum(_pii_count(run) for run in completed)
+
+    recent_runs = []
+    for run_id, run in list(pipeline_runs.items())[-10:]:
+        recent_runs.append({
+            "run_id": run_id,
+            "dataset_name": run.get("dataset_name"),
+            "status": run.get("status"),
+            "filename": run.get("filename"),
+            "current_step": run.get("current_step"),
+            "quality_score": _quality_score(run),
+            "pii_detections": _pii_count(run),
+            "created_at": run.get("created_at") or run.get("started_at") or "",
+            "completed_at": run.get("completed_at") or "",
+        })
+
+    try:
+        connectors = list_connectors()
+        active_connectors = sum(1 for c in connectors if c.get("enabled", True))
+    except Exception:
+        active_connectors = 0
+
+    return {
+        "total_runs": total_runs,
+        "avg_quality_score": avg_quality_score,
+        "total_pii_detections": total_pii_detections,
+        "recent_runs": recent_runs,
+        "active_connectors": active_connectors,
+    }
+
+
 @app.get("/quality/metrics/{run_id}", response_model=QualityMetricsResponse)
 async def get_quality_metrics(run_id: str) -> QualityMetricsResponse:
     """Get data quality metrics for a pipeline run.
