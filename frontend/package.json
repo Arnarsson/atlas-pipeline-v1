@@ -38,6 +38,7 @@
     "vite": "^7.3.1"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.9",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-toast": "^1.2.15",
@@ -46,6 +47,7 @@
     "axios": "^1.13.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "framer-motion": "^12.25.0",
     "lucide-react": "^0.562.0",
     "react-dropzone": "^14.3.8",
     "react-hook-form": "^7.70.0",

@@ -1,4 +1,5 @@
 import { Shield, AlertTriangle } from 'lucide-react';
+import { motion } from 'framer-motion';
 import type { PIIReport } from '@/types';
 
 interface PIITableProps {
@@ -33,68 +34,139 @@ export default function PIITable({ report }: PIITableProps) {
     <div className="space-y-6" data-testid="pii-table">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6" data-testid="pii-summary">
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-white to-purple-50 rounded-xl shadow-lg p-6 border-2 border-purple-200"
+        >
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <Shield className="h-6 w-6 text-purple-600" />
-            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.2 }}
+              className="p-3 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-md"
+            >
+              <Shield className="h-7 w-7 text-white" />
+            </motion.div>
             <div>
-              <p className="text-sm text-gray-600">Total Detections</p>
-              <p className="text-2xl font-bold text-gray-900" data-testid="pii-total-count">{report.total_detections}</p>
+              <p className="text-sm text-gray-600 font-semibold">Total Detections</p>
+              <motion.p
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
+                className="text-3xl font-extrabold text-gray-900"
+                data-testid="pii-total-count"
+              >
+                {report.total_detections}
+              </motion.p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-white to-blue-50 rounded-xl shadow-lg p-6 border-2 border-blue-200"
+        >
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <AlertTriangle className="h-6 w-6 text-blue-600" />
-            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.3 }}
+              className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md"
+            >
+              <AlertTriangle className="h-7 w-7 text-white" />
+            </motion.div>
             <div>
-              <p className="text-sm text-gray-600">PII Types Found</p>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-sm text-gray-600 font-semibold">PII Types Found</p>
+              <motion.p
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.4 }}
+                className="text-3xl font-extrabold text-gray-900"
+              >
                 {Object.keys(report.detections_by_type).length}
-              </p>
+              </motion.p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.2 }}
+          whileHover={{ scale: 1.03 }}
+          className="bg-gradient-to-br from-white to-green-50 rounded-xl shadow-lg p-6 border-2 border-green-200"
+        >
           <div className="flex items-center gap-3">
-            <div className={`p-3 rounded-lg ${getComplianceColor(report.compliance_status)}`}>
-              <Shield className="h-6 w-6" />
-            </div>
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.4 }}
+              className={`p-3 rounded-xl shadow-md ${getComplianceColor(report.compliance_status)}`}
+            >
+              <Shield className="h-7 w-7" />
+            </motion.div>
             <div>
-              <p className="text-sm text-gray-600">Compliance Status</p>
-              <p className="text-lg font-bold capitalize">{report.compliance_status}</p>
+              <p className="text-sm text-gray-600 font-semibold">Compliance Status</p>
+              <motion.p
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, damping: 15, delay: 0.5 }}
+                className="text-xl font-extrabold capitalize"
+              >
+                {report.compliance_status}
+              </motion.p>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
 
       {/* PII by Type */}
       {Object.keys(report.detections_by_type).length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-200"
+        >
+          <h3 className="text-xl font-bold text-gray-900 mb-6">
             Detections by Type
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {Object.entries(report.detections_by_type).map(([type, count]) => (
-              <div key={type} className="bg-gray-50 rounded-lg p-4">
-                <p className="text-sm text-gray-600 capitalize mb-1">
+            {Object.entries(report.detections_by_type).map(([type, count], idx) => (
+              <motion.div
+                key={type}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.3, delay: 0.6 + idx * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+                className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-gray-200 shadow-md"
+              >
+                <p className="text-sm text-gray-600 capitalize mb-2 font-semibold">
                   {type.replace(/_/g, ' ')}
                 </p>
-                <p className="text-2xl font-bold text-gray-900">{count}</p>
-              </div>
+                <p className="text-3xl font-extrabold text-purple-600">{count}</p>
+              </motion.div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Detections Table */}
       {report.detections.length > 0 && (
-        <div className="bg-white rounded-lg shadow-md p-6" data-testid="pii-detections">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.8 }}
+          className="bg-white rounded-2xl shadow-xl p-6 border-2 border-gray-200"
+          data-testid="pii-detections"
+        >
+          <h3 className="text-xl font-bold text-gray-900 mb-6">
             Detection Details
           </h3>
           <div className="overflow-x-auto">
@@ -117,7 +189,14 @@ export default function PIITable({ report }: PIITableProps) {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {report.detections.map((detection, idx) => (
-                  <tr key={idx} className="hover:bg-gray-50">
+                  <motion.tr
+                    key={idx}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.3, delay: 0.9 + idx * 0.05 }}
+                    whileHover={{ backgroundColor: '#f9fafb', scale: 1.01 }}
+                    className="transition-colors"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
                         {detection.entity_type}
@@ -138,29 +217,41 @@ export default function PIITable({ report }: PIITableProps) {
                         {Math.round(detection.confidence * 100)}%
                       </span>
                     </td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Recommendations */}
       {report.recommendations.length > 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
-          <h3 className="text-lg font-semibold text-yellow-900 mb-3">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 1.0 }}
+          className="bg-gradient-to-br from-yellow-50 to-orange-50 border-2 border-yellow-300 rounded-2xl p-6 shadow-lg"
+        >
+          <h3 className="text-xl font-bold text-yellow-900 mb-4 flex items-center gap-2">
+            <AlertTriangle className="h-6 w-6" />
             Recommendations
           </h3>
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {report.recommendations.map((rec, idx) => (
-              <li key={idx} className="flex items-start gap-2">
+              <motion.li
+                key={idx}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: 1.1 + idx * 0.1 }}
+                className="flex items-start gap-3 bg-white/50 rounded-lg p-3 border border-yellow-200"
+              >
                 <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
-                <span className="text-sm text-yellow-800">{rec}</span>
-              </li>
+                <span className="text-sm text-yellow-900 font-medium">{rec}</span>
+              </motion.li>
             ))}
           </ul>
-        </div>
+        </motion.div>
       )}
     </div>
   );

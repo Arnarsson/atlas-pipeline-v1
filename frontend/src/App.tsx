@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import Layout from './components/Layout/Layout';
@@ -17,15 +17,40 @@ const queryClient = new QueryClient({
     queries: {
       refetchOnWindowFocus: false,
       retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 30000,
     },
   },
 });
 
-function App() {
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <BrowserRouter>
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#1e3a8a',
+              color: '#fff',
+              fontWeight: '600',
+              borderRadius: '12px',
+              padding: '16px',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#ef4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
@@ -39,10 +64,7 @@ function App() {
             <Route path="lineage" element={<Lineage />} />
           </Route>
         </Routes>
-      </Router>
-      <Toaster position="top-right" />
+      </BrowserRouter>
     </QueryClientProvider>
   );
 }
-
-export default App;
