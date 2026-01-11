@@ -161,7 +161,7 @@ export default function QualityDashboard({ metrics }: QualityDashboardProps) {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {Object.entries(metrics.column_metrics).map(([column, colMetrics]) => (
+                {Object.entries(metrics.column_metrics || {}).map(([column, colMetrics]) => (
                   <motion.tr
                     key={column}
                     initial={{ opacity: 0 }}
