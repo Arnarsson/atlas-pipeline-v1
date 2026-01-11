@@ -14,9 +14,15 @@
 **Progress**: 81% of Atlas Data Pipeline Standard
 **Code**: ~42,000 lines (Backend + Frontend + Database + Tests + Docs)
 **Tests**: 204 total (82 backend ✅ + 122 frontend E2E)
-**Repositories**:
-- Local: `/Users/sven/Desktop/MCP/.worktrees/`
-- GitHub: https://github.com/Arnarsson/atlas-pipeline-v1
+**Repository**: https://github.com/Arnarsson/atlas-pipeline-v1
+
+**Directory Structure**:
+```
+atlas-pipeline-v1/
+├── backend/          # FastAPI + Python pipeline
+├── frontend/         # React + TypeScript dashboard
+└── docs/            # Documentation
+```
 
 ---
 
@@ -24,21 +30,29 @@
 
 ### **Start Backend**
 ```bash
-cd /Users/sven/Desktop/MCP/.worktrees/atlas-api
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-simple.txt aiomysql asyncpg presidio-analyzer presidio-anonymizer soda-core-postgres celery tenacity redis
 python3 simple_main.py
 ```
 ✅ API: **http://localhost:8000**
+✅ Docs: **http://localhost:8000/docs**
 
 ### **Start Frontend**
 ```bash
-cd /Users/sven/Desktop/MCP/.worktrees/atlas-dashboard
+cd frontend
+npm install
 npm run dev
 ```
-✅ Dashboard: **http://localhost:5174**
+✅ Dashboard: **http://localhost:5173**
 
-### **Open Dashboard**
+### **Quick Test**
 ```bash
-open http://localhost:5174
+# Upload test CSV
+curl -X POST http://localhost:8000/pipeline/run \
+  -F "file=@your_file.csv" \
+  -F "dataset_name=test"
 ```
 
 ---
@@ -642,7 +656,7 @@ npm install  # Frontend
 
 **Access Now**:
 - Backend: http://localhost:8000
-- Dashboard: http://localhost:5174
+- Dashboard: http://localhost:5173
 - GitHub: https://github.com/Arnarsson/atlas-pipeline-v1
 
 ---
@@ -690,5 +704,72 @@ npm install  # Frontend
 - Backend API: http://localhost:8000
 - Frontend Dashboard: http://localhost:5173
 - API Documentation: http://localhost:8000/docs
+
+---
+
+## 🛠️ Troubleshooting
+
+### **Frontend Shows Black Screen**
+Hard refresh your browser:
+- **Windows/Linux**: Ctrl + Shift + R
+- **Mac**: Cmd + Shift + R
+- Or open in incognito/private mode
+
+### **Backend Import Errors**
+Install all dependencies:
+```bash
+cd backend
+source venv/bin/activate
+pip install -r requirements-simple.txt aiomysql asyncpg presidio-analyzer presidio-anonymizer soda-core-postgres celery tenacity redis
+```
+
+### **Port Already in Use**
+```bash
+# Find process on port 8000
+lsof -i :8000
+kill -9 <PID>
+
+# Find process on port 5173
+lsof -i :5173
+kill -9 <PID>
+```
+
+### **Numpy Errors**
+The numpy 2.x compatibility fix is already applied (commit 1c56079).
+If you see `bool8` errors, ensure you're on the latest code:
+```bash
+git pull origin main
+```
+
+---
+
+## 📦 Installation from Scratch
+
+### **Clone Repository**
+```bash
+git clone https://github.com/Arnarsson/atlas-pipeline-v1.git
+cd atlas-pipeline-v1
+```
+
+### **Backend Setup**
+```bash
+cd backend
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements-simple.txt aiomysql asyncpg presidio-analyzer presidio-anonymizer soda-core-postgres celery tenacity redis
+python3 simple_main.py
+```
+
+### **Frontend Setup** (New Terminal)
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### **Access**
+- Backend: http://localhost:8000
+- Frontend: http://localhost:5173
+- API Docs: http://localhost:8000/docs
 
 ---
