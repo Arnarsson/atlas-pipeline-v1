@@ -692,3 +692,243 @@ async def import_state(state_data: Dict[str, Any]) -> Dict[str, Any]:
         "stream_count": len(state.streams),
         "message": "State imported successfully"
     }
+
+
+# ============================================================================
+# Sync Jobs & Scheduling
+# ============================================================================
+
+
+from app.connectors.airbyte.sync_scheduler import (
+    get_sync_scheduler,
+    SyncMode as SchedulerSyncMode,
+)
+
+
+class CreateSyncJobRequest(BaseModel):
+    """Request to create a sync job."""
+    source_id: str
+    source_name: str
+    streams: List[str]
+    sync_mode: str = "full_refresh"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class CreateScheduleRequest(BaseModel):
+    """Request to create a scheduled sync."""
+    source_id: str
+    source_name: str
+    streams: List[str]
+    cron_expression: str = Field(..., description="Cron expression (e.g., '0 * * * *' for hourly)")
+    sync_mode: str = "incremental"
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+class UpdateScheduleRequest(BaseModel):
+    """Request to update a schedule."""
+    enabled: Optional[bool] = None
+    cron_expression: Optional[str] = None
+    streams: Optional[List[str]] = None
+
+
+@router.get("/sync/stats")
+async def get_sync_stats() -> Dict[str, Any]:
+    """Get sync scheduler statistics."""
+    scheduler = get_sync_scheduler()
+    return scheduler.get_stats()
+
+
+@router.post("/sync/jobs")
+async def create_sync_job(request: CreateSyncJobRequest) -> Dict[str, Any]:
+    """Create a new sync job."""
+    scheduler = get_sync_scheduler()
+
+    sync_mode = (
+        SchedulerSyncMode.INCREMENTAL
+        if request.sync_mode == "incremental"
+        else SchedulerSyncMode.FULL_REFRESH
+    )
+
+    job = scheduler.create_sync_job(
+        source_id=request.source_id,
+        source_name=request.source_name,
+        streams=request.streams,
+        sync_mode=sync_mode,
+        metadata=request.metadata
+    )
+
+    return {
+        "status": "created",
+        "job": job.to_dict()
+    }
+
+
+@router.post("/sync/jobs/{job_id}/run")
+async def run_sync_job(job_id: str) -> Dict[str, Any]:
+    """Run a sync job."""
+    scheduler = get_sync_scheduler()
+
+    try:
+        job = await scheduler.run_sync_job(job_id)
+        return {
+            "status": "completed" if job.status.value == "completed" else job.status.value,
+            "job": job.to_dict()
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/sync/jobs/{job_id}")
+async def get_sync_job(job_id: str) -> Dict[str, Any]:
+    """Get a sync job by ID."""
+    scheduler = get_sync_scheduler()
+    job = scheduler.get_job(job_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+
+    return job.to_dict()
+
+
+@router.post("/sync/jobs/{job_id}/cancel")
+async def cancel_sync_job(job_id: str) -> Dict[str, Any]:
+    """Cancel a sync job."""
+    scheduler = get_sync_scheduler()
+
+    if scheduler.cancel_job(job_id):
+        return {"status": "cancelled", "job_id": job_id}
+    else:
+        raise HTTPException(status_code=400, detail=f"Cannot cancel job {job_id}")
+
+
+@router.get("/sync/jobs")
+async def list_sync_jobs(
+    source_id: Optional[str] = Query(None, description="Filter by source"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    limit: int = Query(20, description="Maximum jobs to return")
+) -> List[Dict[str, Any]]:
+    """List sync jobs and history."""
+    scheduler = get_sync_scheduler()
+
+    # Get running jobs
+    running = scheduler.get_running_jobs()
+
+    # Get history
+    history = scheduler.get_job_history(source_id=source_id, limit=limit)
+
+    # Combine and filter
+    all_jobs = running + history
+
+    if status:
+        all_jobs = [j for j in all_jobs if j.status.value == status]
+
+    return [j.to_dict() for j in all_jobs[:limit]]
+
+
+@router.get("/sync/running")
+async def get_running_jobs() -> List[Dict[str, Any]]:
+    """Get all currently running sync jobs."""
+    scheduler = get_sync_scheduler()
+    jobs = scheduler.get_running_jobs()
+    return [j.to_dict() for j in jobs]
+
+
+# ============================================================================
+# Scheduled Syncs
+# ============================================================================
+
+
+@router.post("/sync/schedules")
+async def create_schedule(request: CreateScheduleRequest) -> Dict[str, Any]:
+    """Create a scheduled recurring sync."""
+    scheduler = get_sync_scheduler()
+
+    sync_mode = (
+        SchedulerSyncMode.INCREMENTAL
+        if request.sync_mode == "incremental"
+        else SchedulerSyncMode.FULL_REFRESH
+    )
+
+    schedule = scheduler.create_schedule(
+        source_id=request.source_id,
+        source_name=request.source_name,
+        streams=request.streams,
+        cron_expression=request.cron_expression,
+        sync_mode=sync_mode,
+        metadata=request.metadata
+    )
+
+    return {
+        "status": "created",
+        "schedule": schedule.to_dict()
+    }
+
+
+@router.get("/sync/schedules")
+async def list_schedules(
+    source_id: Optional[str] = Query(None, description="Filter by source")
+) -> List[Dict[str, Any]]:
+    """List all scheduled syncs."""
+    scheduler = get_sync_scheduler()
+    schedules = scheduler.list_schedules(source_id=source_id)
+    return [s.to_dict() for s in schedules]
+
+
+@router.get("/sync/schedules/{schedule_id}")
+async def get_schedule(schedule_id: str) -> Dict[str, Any]:
+    """Get a schedule by ID."""
+    scheduler = get_sync_scheduler()
+    schedule = scheduler.get_schedule(schedule_id)
+
+    if not schedule:
+        raise HTTPException(status_code=404, detail=f"Schedule {schedule_id} not found")
+
+    return schedule.to_dict()
+
+
+@router.put("/sync/schedules/{schedule_id}")
+async def update_schedule(schedule_id: str, request: UpdateScheduleRequest) -> Dict[str, Any]:
+    """Update a scheduled sync."""
+    scheduler = get_sync_scheduler()
+
+    schedule = scheduler.update_schedule(
+        schedule_id=schedule_id,
+        enabled=request.enabled,
+        cron_expression=request.cron_expression,
+        streams=request.streams
+    )
+
+    if not schedule:
+        raise HTTPException(status_code=404, detail=f"Schedule {schedule_id} not found")
+
+    return {
+        "status": "updated",
+        "schedule": schedule.to_dict()
+    }
+
+
+@router.delete("/sync/schedules/{schedule_id}")
+async def delete_schedule(schedule_id: str) -> Dict[str, Any]:
+    """Delete a scheduled sync."""
+    scheduler = get_sync_scheduler()
+
+    if scheduler.delete_schedule(schedule_id):
+        return {"status": "deleted", "schedule_id": schedule_id}
+    else:
+        raise HTTPException(status_code=404, detail=f"Schedule {schedule_id} not found")
+
+
+@router.post("/sync/schedules/{schedule_id}/run")
+async def trigger_scheduled_sync(schedule_id: str) -> Dict[str, Any]:
+    """Manually trigger a scheduled sync."""
+    scheduler = get_sync_scheduler()
+
+    job = await scheduler.run_scheduled_sync(schedule_id)
+
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Schedule {schedule_id} not found")
+
+    return {
+        "status": "triggered",
+        "job": job.to_dict()
+    }
