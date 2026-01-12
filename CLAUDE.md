@@ -1,7 +1,7 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
 **Last Updated**: January 12, 2026
-**Status**: Phase 5 AtlasIntelligence IN PROGRESS
+**Status**: Phase 5 AtlasIntelligence 90% COMPLETE
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
 
 ---
@@ -10,9 +10,9 @@
 
 ### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 1-4) + Phase 5 Started**
 
-**Progress**: 100% of Atlas Data Pipeline Standard ✅ | Phase 5: 60% Complete
-**Code**: ~52,000+ lines (Backend + Frontend + Database + Tests + Docs)
-**Tests**: 206+ total (82 backend ✅ + 124 frontend E2E)
+**Progress**: 100% of Atlas Data Pipeline Standard ✅ | Phase 5: 90% Complete
+**Code**: ~55,000+ lines (Backend + Frontend + Database + Tests + Docs)
+**Tests**: 250+ total (120+ backend ✅ + 124 frontend E2E)
 
 **Recent Updates (January 2026)**:
 - **Phase 5: AtlasIntelligence Connector Platform** - IN PROGRESS
@@ -219,11 +219,10 @@ atlas_pipeline (database)
 
 ---
 
-## 🔌 Phase 5: AtlasIntelligence Connector Platform (IN PROGRESS)
+## 🔌 Phase 5: AtlasIntelligence Connector Platform (90% COMPLETE)
 
-**Status**: 🚀 **60% Complete** - Core Implementation Done
+**Status**: 🚀 **90% Complete** - Core + Advanced Features Done
 **Branch**: `claude/add-atlas-intelligence-page-zpjKn`
-**Estimated Timeline**: 4 weeks (20 working days)
 **Target**: Unified connector platform with 400+ data sources
 
 ### **✅ Completed (January 12, 2026)**
@@ -237,33 +236,66 @@ atlas_pipeline (database)
   - Full state persistence for incremental syncs
   - Stream-level and source-level state tracking
   - Export/import for backup and migration
-- `backend/app/api/routes/atlas_intelligence.py` (700 lines)
+- `backend/app/connectors/airbyte/sync_scheduler.py` (450 lines)
+  - Sync job creation, execution, and history
+  - Cron-based scheduled syncs (ScheduledSync)
+  - Concurrent job limits (configurable max)
+  - Job callbacks for status tracking
+- `backend/app/api/routes/atlas_intelligence.py` (935 lines)
   - 13 MCP connectors (GitHub, Stripe, HubSpot, Salesforce, Jira, Linear, etc.)
-  - 25+ API endpoints for connectors, credentials, state management
+  - 40+ API endpoints for connectors, credentials, state, sync jobs
   - Unified search across all connector types
 
 **Frontend Implementation:**
-- `frontend/src/pages/AtlasIntelligence.tsx` (885 lines)
+- `frontend/src/pages/AtlasIntelligence.tsx` (950 lines)
   - 3-tab interface: MCP Connectors, PyAirbyte Sources, N8N Workflows
   - Category filtering and search for PyAirbyte
   - Credential management UI
   - Health status cards
+  - Sync status toggle button
+- `frontend/src/components/ConnectorConfigWizard.tsx` (400 lines)
+  - 3-step wizard: Configure → Select Streams → Review
+  - Dynamic form generation from connector spec
+- `frontend/src/components/SchemaBrowser.tsx` (250 lines)
+  - Stream discovery and metadata display
+  - Copy stream name functionality
+- `frontend/src/components/SyncStatusPanel.tsx` (550 lines)
+  - 3-section UI: Overview, Jobs, Schedules
+  - Real-time stats (running, completed, failed, records)
+  - Job history with expandable details
+  - Schedule management (enable/disable, run now, delete)
 
-**API Endpoints Added:**
+**Test Coverage:**
+- `backend/tests/connectors/airbyte/test_pyairbyte_executor.py` (200 lines)
+- `backend/tests/connectors/airbyte/test_state_manager.py` (300 lines)
+- `backend/tests/connectors/airbyte/test_sync_scheduler.py` (350 lines)
+- `backend/tests/api/test_atlas_intelligence.py` (400 lines)
+
+**API Endpoints Added (40+):**
 - `GET /atlas-intelligence/health` - Platform health
 - `GET /atlas-intelligence/connectors` - MCP connectors list
 - `GET /atlas-intelligence/pyairbyte/connectors` - 70+ PyAirbyte sources
 - `GET /atlas-intelligence/pyairbyte/categories` - Category list
+- `POST /atlas-intelligence/pyairbyte/configure` - Configure connector
+- `GET /atlas-intelligence/pyairbyte/discover/{source_id}` - Discover streams
+- `GET /atlas-intelligence/pyairbyte/read/{source_id}/{stream}` - Read data
 - `GET/POST /atlas-intelligence/credentials` - Credential management
-- `GET /atlas-intelligence/state/sources` - State management
+- `GET/POST /atlas-intelligence/state/sources` - State management
 - `PUT /atlas-intelligence/state/sources/{id}/streams` - Update stream state
 - `POST /atlas-intelligence/state/sources/{id}/reset` - Reset for full refresh
+- `GET/POST /atlas-intelligence/state/export|import` - State backup
+- `GET /atlas-intelligence/sync/stats` - Scheduler statistics
+- `POST/GET /atlas-intelligence/sync/jobs` - Job CRUD
+- `POST /atlas-intelligence/sync/jobs/{id}/run` - Run job
+- `POST /atlas-intelligence/sync/jobs/{id}/cancel` - Cancel job
+- `GET /atlas-intelligence/sync/running` - Running jobs
+- `POST/GET/PUT/DELETE /atlas-intelligence/sync/schedules` - Schedule CRUD
+- `POST /atlas-intelligence/sync/schedules/{id}/run` - Trigger schedule
 
-### **🔄 Remaining Tasks**
-- Connector configuration wizard UI
-- Schema browser component
-- Sync job scheduler integration
-- Full test coverage
+### **🔄 Remaining Tasks (10%)**
+- End-to-end integration testing
+- Performance optimization for large syncs
+- Production deployment documentation
 
 ### **Objective**
 Integrate Airbyte's connector system (100+ pre-built connectors) to extend Atlas's capabilities, providing:
