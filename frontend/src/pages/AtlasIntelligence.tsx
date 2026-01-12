@@ -17,18 +17,22 @@ import {
   Eye,
   EyeOff,
   Save,
-  X
+  X,
+  Search,
+  Layers,
+  Package
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/api/client';
 
-// Types for Airbyte connectors
+// Types for connectors
 interface AirbyteConnector {
   id: string;
   description: string;
   type: string;
   path: string | null;
   connector_name: string | null;
+  category?: string;
 }
 
 interface AirbyteEntity {
@@ -56,7 +60,21 @@ interface CredentialStatus {
   masked: string;
 }
 
-// API functions
+interface PyAirbyteConnector {
+  id: string;
+  name: string;
+  category: string;
+  status: string;
+  pyairbyte_available: boolean;
+}
+
+interface PyAirbyteCategory {
+  category: string;
+  count: number;
+  label: string;
+}
+
+// API functions - MCP
 const getAirbyteConnectors = async (): Promise<AirbyteConnector[]> => {
   const response = await api.get('/atlas-intelligence/connectors');
   return response.data;
@@ -97,16 +115,44 @@ const updateCredentials = async (data: { connector_id: string; api_key: string }
   return response.data;
 };
 
+// API functions - PyAirbyte
+const getPyAirbyteHealth = async () => {
+  const response = await api.get('/atlas-intelligence/pyairbyte/health');
+  return response.data;
+};
+
+const getPyAirbyteConnectors = async (category?: string, search?: string): Promise<PyAirbyteConnector[]> => {
+  const params = new URLSearchParams();
+  if (category) params.append('category', category);
+  if (search) params.append('search', search);
+  const response = await api.get(`/atlas-intelligence/pyairbyte/connectors?${params.toString()}`);
+  return response.data;
+};
+
+const getPyAirbyteCategories = async (): Promise<PyAirbyteCategory[]> => {
+  const response = await api.get('/atlas-intelligence/pyairbyte/categories');
+  return response.data;
+};
+
+const getPlatformStats = async () => {
+  const response = await api.get('/atlas-intelligence/stats');
+  return response.data;
+};
+
+type TabType = 'mcp' | 'pyairbyte' | 'n8n';
+
 export default function AtlasIntelligence() {
+  const [activeTab, setActiveTab] = useState<TabType>('mcp');
   const [selectedConnector, setSelectedConnector] = useState<string | null>(null);
-  const [showN8N, setShowN8N] = useState(false);
   const [showCredentials, setShowCredentials] = useState(false);
   const [editingCredential, setEditingCredential] = useState<string | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
+  const [pyairbyteSearch, setPyairbyteSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  // Queries
+  // MCP Queries
   const { data: connectors = [], isLoading: loadingConnectors } = useQuery({
     queryKey: ['airbyte-connectors'],
     queryFn: getAirbyteConnectors,
@@ -128,19 +174,45 @@ export default function AtlasIntelligence() {
   const { data: n8nWorkflows = [] } = useQuery({
     queryKey: ['n8n-workflows'],
     queryFn: getN8NWorkflows,
-    enabled: showN8N,
+    enabled: activeTab === 'n8n',
   });
 
   const { data: entities = [], isLoading: loadingEntities } = useQuery({
     queryKey: ['connector-entities', selectedConnector],
     queryFn: () => selectedConnector ? getConnectorEntities(selectedConnector) : Promise.resolve([]),
-    enabled: !!selectedConnector,
+    enabled: !!selectedConnector && activeTab === 'mcp',
   });
 
   const { data: credentials = {} } = useQuery({
     queryKey: ['credentials'],
     queryFn: getCredentials,
     enabled: showCredentials,
+  });
+
+  // PyAirbyte Queries
+  const { data: pyairbyteHealth } = useQuery({
+    queryKey: ['pyairbyte-health'],
+    queryFn: getPyAirbyteHealth,
+    enabled: activeTab === 'pyairbyte',
+    refetchInterval: 30000,
+  });
+
+  const { data: pyairbyteConnectors = [], isLoading: loadingPyAirbyte } = useQuery({
+    queryKey: ['pyairbyte-connectors', selectedCategory, pyairbyteSearch],
+    queryFn: () => getPyAirbyteConnectors(selectedCategory || undefined, pyairbyteSearch || undefined),
+    enabled: activeTab === 'pyairbyte',
+  });
+
+  const { data: pyairbyteCategories = [] } = useQuery({
+    queryKey: ['pyairbyte-categories'],
+    queryFn: getPyAirbyteCategories,
+    enabled: activeTab === 'pyairbyte',
+  });
+
+  const { data: stats } = useQuery({
+    queryKey: ['platform-stats'],
+    queryFn: getPlatformStats,
+    refetchInterval: 60000,
   });
 
   // Mutations
@@ -208,14 +280,26 @@ export default function AtlasIntelligence() {
     return iconMap[id] || <Database className="w-5 h-5 text-[hsl(var(--muted-foreground))]" />;
   };
 
+  const getCategoryIcon = (category: string) => {
+    const icons: Record<string, JSX.Element> = {
+      database: <Database className="w-4 h-4" />,
+      crm: <Cloud className="w-4 h-4" />,
+      marketing: <Zap className="w-4 h-4" />,
+      ecommerce: <Package className="w-4 h-4" />,
+      analytics: <Layers className="w-4 h-4" />,
+      project: <Server className="w-4 h-4" />,
+    };
+    return icons[category] || <Database className="w-4 h-4" />;
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Atlas Connectors</h1>
+          <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">AtlasIntelligence</h1>
           <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
-            Access 13+ data sources via MCP integration
+            Unified connector platform - {stats?.total_available || '300+'}+ data sources
           </p>
         </div>
         <div className="flex gap-2">
@@ -226,23 +310,53 @@ export default function AtlasIntelligence() {
             <Key className="w-4 h-4 mr-2" />
             API Keys
           </Button>
-          <Button
-            variant={showN8N ? "default" : "outline"}
-            onClick={() => setShowN8N(!showN8N)}
-          >
-            <Zap className="w-4 h-4 mr-2" />
-            N8N Workflows
-          </Button>
         </div>
       </div>
 
+      {/* Tab Navigation */}
+      <div className="flex gap-2 border-b border-[hsl(var(--border))] pb-2">
+        <Button
+          variant={activeTab === 'mcp' ? 'default' : 'ghost'}
+          onClick={() => { setActiveTab('mcp'); setSelectedConnector(null); }}
+          className="flex items-center gap-2"
+        >
+          <Zap className="w-4 h-4" />
+          MCP Connectors
+          <span className="ml-1 px-1.5 py-0.5 text-xs rounded bg-[hsl(var(--secondary))]">
+            {connectors.length}
+          </span>
+        </Button>
+        <Button
+          variant={activeTab === 'pyairbyte' ? 'default' : 'ghost'}
+          onClick={() => { setActiveTab('pyairbyte'); setSelectedConnector(null); }}
+          className="flex items-center gap-2"
+        >
+          <Package className="w-4 h-4" />
+          PyAirbyte Sources
+          <span className="ml-1 px-1.5 py-0.5 text-xs rounded bg-[hsl(var(--secondary))]">
+            {stats?.pyairbyte_connectors?.total || '70+'}
+          </span>
+        </Button>
+        <Button
+          variant={activeTab === 'n8n' ? 'default' : 'ghost'}
+          onClick={() => setActiveTab('n8n')}
+          className="flex items-center gap-2"
+        >
+          <Server className="w-4 h-4" />
+          N8N Workflows
+          <span className="ml-1 px-1.5 py-0.5 text-xs rounded bg-[hsl(var(--secondary))]">
+            {n8nHealth?.workflow_count || 0}
+          </span>
+        </Button>
+      </div>
+
       {/* Health Status Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[hsl(var(--muted-foreground))]">MCP Status</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">Platform Status</p>
                 <div className="flex items-center gap-2 mt-1">
                   {health?.status === 'healthy' ? (
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -263,12 +377,12 @@ export default function AtlasIntelligence() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[hsl(var(--muted-foreground))]">Connectors Available</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">MCP Connectors</p>
                 <p className="text-2xl font-semibold text-[hsl(var(--foreground))]">
-                  {health?.connectors_count || connectors.length}
+                  {connectors.length}
                 </p>
               </div>
-              <Cloud className="w-8 h-8 text-[hsl(var(--muted-foreground))]" />
+              <Zap className="w-8 h-8 text-orange-500" />
             </div>
           </CardContent>
         </Card>
@@ -277,7 +391,21 @@ export default function AtlasIntelligence() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[hsl(var(--muted-foreground))]">N8N Status</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">PyAirbyte Sources</p>
+                <p className="text-2xl font-semibold text-[hsl(var(--foreground))]">
+                  {stats?.pyairbyte_connectors?.total || '70+'}
+                </p>
+              </div>
+              <Package className="w-8 h-8 text-blue-500" />
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">N8N Workflows</p>
                 <div className="flex items-center gap-2 mt-1">
                   {n8nHealth?.n8n_connectivity === 'connected' ? (
                     <CheckCircle2 className="w-4 h-4 text-green-500" />
@@ -285,7 +413,7 @@ export default function AtlasIntelligence() {
                     <XCircle className="w-4 h-4 text-red-500" />
                   )}
                   <span className="text-lg font-semibold text-[hsl(var(--foreground))]">
-                    {n8nHealth?.workflow_count || 0} workflows
+                    {n8nHealth?.workflow_count || 0}
                   </span>
                 </div>
               </div>
@@ -403,11 +531,317 @@ export default function AtlasIntelligence() {
         </Card>
       )}
 
-      {/* N8N Workflows Section (collapsible) */}
-      {showN8N && (
+      {/* MCP Tab Content */}
+      {activeTab === 'mcp' && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Connector List */}
+          <div className="lg:col-span-1">
+            <Card>
+              <CardContent className="p-0">
+                <div className="p-4 border-b border-[hsl(var(--border))]">
+                  <h3 className="font-medium text-[hsl(var(--foreground))]">MCP Data Sources</h3>
+                  <p className="text-xs text-[hsl(var(--muted-foreground))] mt-1">Lightweight, fast connectors</p>
+                </div>
+                {loadingConnectors ? (
+                  <div className="p-4 text-center text-[hsl(var(--muted-foreground))]">
+                    <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Loading connectors...
+                  </div>
+                ) : (
+                  <div className="divide-y divide-[hsl(var(--border))] max-h-[500px] overflow-y-auto">
+                    {connectors.map((connector) => (
+                      <button
+                        key={connector.id}
+                        onClick={() => setSelectedConnector(connector.id)}
+                        className={`w-full p-3 flex items-center justify-between text-left hover:bg-[hsl(var(--secondary))] transition-colors ${
+                          selectedConnector === connector.id ? 'bg-[hsl(var(--secondary))]' : ''
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          {getConnectorIcon(connector.id)}
+                          <div>
+                            <p className="font-medium text-[hsl(var(--foreground))] capitalize">
+                              {connector.id.replace(/-/g, ' ')}
+                            </p>
+                            <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-1">
+                              {connector.description}
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className={`w-4 h-4 text-[hsl(var(--muted-foreground))] transition-transform ${
+                          selectedConnector === connector.id ? 'rotate-90' : ''
+                        }`} />
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Connector Details & Actions */}
+          <div className="lg:col-span-2">
+            {selectedConnector ? (
+              <Card>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      {getConnectorIcon(selectedConnector)}
+                      <div>
+                        <h3 className="text-lg font-medium text-[hsl(var(--foreground))] capitalize">
+                          {selectedConnector.replace(/-/g, ' ')}
+                        </h3>
+                        <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                          {connectors.find(c => c.id === selectedConnector)?.description}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Entities & Actions */}
+                  <div className="border-t border-[hsl(var(--border))] pt-4">
+                    <h4 className="text-sm font-medium text-[hsl(var(--foreground))] mb-3">
+                      Available Operations
+                    </h4>
+                    {loadingEntities ? (
+                      <div className="text-center py-4">
+                        <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[hsl(var(--muted-foreground))]" />
+                      </div>
+                    ) : entities.length > 0 ? (
+                      <div className="space-y-3">
+                        {entities.map((entity) => (
+                          <div
+                            key={entity.name}
+                            className="p-3 border border-[hsl(var(--border))] rounded-lg"
+                          >
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-medium text-[hsl(var(--foreground))] capitalize">
+                                {entity.name.replace(/_/g, ' ')}
+                              </span>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {entity.actions.map((action) => (
+                                <Button
+                                  key={action}
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => handleExecute(entity.name, action)}
+                                  disabled={executeMutation.isPending}
+                                >
+                                  <Play className="w-3 h-3 mr-1" />
+                                  {action}
+                                </Button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Database className="w-8 h-8 mx-auto text-[hsl(var(--muted-foreground))] mb-2" />
+                        <p className="text-[hsl(var(--muted-foreground))]">
+                          Configure this connector to see available operations
+                        </p>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
+                          Click "API Keys" above to add credentials
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Execution Result */}
+                  {executeMutation.data && (
+                    <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                      <p className="text-sm font-medium text-green-600 mb-1">Execution Result</p>
+                      <pre className="text-xs text-[hsl(var(--foreground))] overflow-auto max-h-40">
+                        {JSON.stringify(executeMutation.data, null, 2)}
+                      </pre>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="p-8 text-center">
+                  <Zap className="w-12 h-12 mx-auto text-orange-500 mb-4" />
+                  <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">
+                    Select an MCP Connector
+                  </h3>
+                  <p className="text-[hsl(var(--muted-foreground))]">
+                    Choose a data source from the list to view available operations
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* PyAirbyte Tab Content */}
+      {activeTab === 'pyairbyte' && (
+        <div className="space-y-6">
+          {/* PyAirbyte Status Banner */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Package className="w-8 h-8 text-blue-500" />
+                  <div>
+                    <h3 className="font-medium text-[hsl(var(--foreground))]">PyAirbyte Integration</h3>
+                    <p className="text-sm text-[hsl(var(--muted-foreground))]">
+                      {pyairbyteHealth?.message || 'Access 300+ data sources through Airbyte protocol'}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {pyairbyteHealth?.pyairbyte_installed ? (
+                    <span className="px-3 py-1 text-sm rounded-full bg-green-500/10 text-green-600">
+                      <CheckCircle2 className="w-4 h-4 inline mr-1" />
+                      Ready
+                    </span>
+                  ) : (
+                    <span className="px-3 py-1 text-sm rounded-full bg-yellow-500/10 text-yellow-600">
+                      Install: pip install airbyte
+                    </span>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Search and Filter */}
+          <div className="flex gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[hsl(var(--muted-foreground))]" />
+              <input
+                type="text"
+                placeholder="Search connectors..."
+                value={pyairbyteSearch}
+                onChange={(e) => setPyairbyteSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
+              />
+            </div>
+            <select
+              value={selectedCategory || ''}
+              onChange={(e) => setSelectedCategory(e.target.value || null)}
+              className="px-4 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
+            >
+              <option value="">All Categories</option>
+              {pyairbyteCategories.map((cat) => (
+                <option key={cat.category} value={cat.category}>
+                  {cat.label} ({cat.count})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category Pills */}
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setSelectedCategory(null)}
+              className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                !selectedCategory
+                  ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))]'
+                  : 'bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
+              }`}
+            >
+              All
+            </button>
+            {pyairbyteCategories.slice(0, 8).map((cat) => (
+              <button
+                key={cat.category}
+                onClick={() => setSelectedCategory(cat.category)}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors flex items-center gap-1.5 ${
+                  selectedCategory === cat.category
+                    ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))]'
+                    : 'bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--border))]'
+                }`}
+              >
+                {getCategoryIcon(cat.category)}
+                {cat.label}
+                <span className="text-xs opacity-70">({cat.count})</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Connector Grid */}
+          {loadingPyAirbyte ? (
+            <div className="text-center py-12">
+              <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
+              <p className="text-[hsl(var(--muted-foreground))]">Loading connectors...</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {pyairbyteConnectors.map((connector) => (
+                <Card key={connector.id} className="hover:border-[hsl(var(--foreground))] transition-colors cursor-pointer">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        {getCategoryIcon(connector.category)}
+                        <span className="font-medium text-[hsl(var(--foreground))]">
+                          {connector.name}
+                        </span>
+                      </div>
+                      <span className={`px-2 py-0.5 text-xs rounded ${
+                        connector.status === 'installed'
+                          ? 'bg-green-500/10 text-green-600'
+                          : 'bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]'
+                      }`}>
+                        {connector.status}
+                      </span>
+                    </div>
+                    <p className="text-xs text-[hsl(var(--muted-foreground))] mb-3">
+                      {connector.id}
+                    </p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs px-2 py-0.5 rounded bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]">
+                        {connector.category}
+                      </span>
+                      <Button size="sm" variant="outline">
+                        Configure
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+
+          {pyairbyteConnectors.length === 0 && !loadingPyAirbyte && (
+            <div className="text-center py-12">
+              <Package className="w-12 h-12 mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
+              <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">
+                No connectors found
+              </h3>
+              <p className="text-[hsl(var(--muted-foreground))]">
+                Try a different search or category filter
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* N8N Tab Content */}
+      {activeTab === 'n8n' && (
         <Card>
           <CardContent className="p-4">
-            <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-4">N8N Workflows</h3>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-[hsl(var(--foreground))]">
+                <Server className="w-5 h-5 inline mr-2" />
+                N8N Workflow Automation
+              </h3>
+              <div className="flex items-center gap-2">
+                {n8nHealth?.n8n_connectivity === 'connected' ? (
+                  <span className="px-2 py-0.5 text-xs rounded bg-green-500/10 text-green-600">
+                    Connected
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 text-xs rounded bg-red-500/10 text-red-600">
+                    Disconnected
+                  </span>
+                )}
+              </div>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
               {n8nWorkflows.slice(0, 12).map((workflow) => (
                 <div
@@ -434,154 +868,17 @@ export default function AtlasIntelligence() {
                 +{n8nWorkflows.length - 12} more workflows
               </p>
             )}
+            {n8nWorkflows.length === 0 && (
+              <div className="text-center py-8">
+                <Server className="w-8 h-8 mx-auto text-[hsl(var(--muted-foreground))] mb-2" />
+                <p className="text-[hsl(var(--muted-foreground))]">
+                  No workflows available. Connect to N8N to see workflows.
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
-
-      {/* Main Content - Two Column Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Connector List */}
-        <div className="lg:col-span-1">
-          <Card>
-            <CardContent className="p-0">
-              <div className="p-4 border-b border-[hsl(var(--border))]">
-                <h3 className="font-medium text-[hsl(var(--foreground))]">Data Sources</h3>
-              </div>
-              {loadingConnectors ? (
-                <div className="p-4 text-center text-[hsl(var(--muted-foreground))]">
-                  <RefreshCw className="w-5 h-5 animate-spin mx-auto mb-2" />
-                  Loading connectors...
-                </div>
-              ) : (
-                <div className="divide-y divide-[hsl(var(--border))]">
-                  {connectors.map((connector) => (
-                    <button
-                      key={connector.id}
-                      onClick={() => {
-                        setSelectedConnector(connector.id);
-                      }}
-                      className={`w-full p-3 flex items-center justify-between text-left hover:bg-[hsl(var(--secondary))] transition-colors ${
-                        selectedConnector === connector.id ? 'bg-[hsl(var(--secondary))]' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {getConnectorIcon(connector.id)}
-                        <div>
-                          <p className="font-medium text-[hsl(var(--foreground))] capitalize">
-                            {connector.id.replace(/-/g, ' ')}
-                          </p>
-                          <p className="text-xs text-[hsl(var(--muted-foreground))] line-clamp-1">
-                            {connector.description}
-                          </p>
-                        </div>
-                      </div>
-                      <ChevronRight className={`w-4 h-4 text-[hsl(var(--muted-foreground))] transition-transform ${
-                        selectedConnector === connector.id ? 'rotate-90' : ''
-                      }`} />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Connector Details & Actions */}
-        <div className="lg:col-span-2">
-          {selectedConnector ? (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    {getConnectorIcon(selectedConnector)}
-                    <div>
-                      <h3 className="text-lg font-medium text-[hsl(var(--foreground))] capitalize">
-                        {selectedConnector.replace(/-/g, ' ')}
-                      </h3>
-                      <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                        {connectors.find(c => c.id === selectedConnector)?.description}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Entities & Actions */}
-                <div className="border-t border-[hsl(var(--border))] pt-4">
-                  <h4 className="text-sm font-medium text-[hsl(var(--foreground))] mb-3">
-                    Available Operations
-                  </h4>
-                  {loadingEntities ? (
-                    <div className="text-center py-4">
-                      <RefreshCw className="w-5 h-5 animate-spin mx-auto text-[hsl(var(--muted-foreground))]" />
-                    </div>
-                  ) : entities.length > 0 ? (
-                    <div className="space-y-3">
-                      {entities.map((entity) => (
-                        <div
-                          key={entity.name}
-                          className="p-3 border border-[hsl(var(--border))] rounded-lg"
-                        >
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="font-medium text-[hsl(var(--foreground))] capitalize">
-                              {entity.name.replace(/_/g, ' ')}
-                            </span>
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {entity.actions.map((action) => (
-                              <Button
-                                key={action}
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleExecute(entity.name, action)}
-                                disabled={executeMutation.isPending}
-                              >
-                                <Play className="w-3 h-3 mr-1" />
-                                {action}
-                              </Button>
-                            ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8">
-                      <Database className="w-8 h-8 mx-auto text-[hsl(var(--muted-foreground))] mb-2" />
-                      <p className="text-[hsl(var(--muted-foreground))]">
-                        Configure this connector to see available operations
-                      </p>
-                      <p className="text-xs text-[hsl(var(--muted-foreground))] mt-2">
-                        Click "API Keys" above to add credentials
-                      </p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Execution Result */}
-                {executeMutation.data && (
-                  <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
-                    <p className="text-sm font-medium text-green-600 mb-1">Execution Result</p>
-                    <pre className="text-xs text-[hsl(var(--foreground))] overflow-auto max-h-40">
-                      {JSON.stringify(executeMutation.data, null, 2)}
-                    </pre>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <Card>
-              <CardContent className="p-8 text-center">
-                <Database className="w-12 h-12 mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
-                <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">
-                  Select a Connector
-                </h3>
-                <p className="text-[hsl(var(--muted-foreground))]">
-                  Choose a data source from the list to view available operations and execute queries
-                </p>
-              </CardContent>
-            </Card>
-          )}
-        </div>
-      </div>
     </div>
   );
 }

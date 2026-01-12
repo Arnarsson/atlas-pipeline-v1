@@ -12,6 +12,7 @@ from app.connectors.registry import ConnectorRegistry
 from app.monitoring.health import router as health_router
 from app.monitoring.metrics import get_metrics, get_metrics_content_type, metrics_middleware
 from app.api.routes.enhanced_catalog import router as enhanced_catalog_router
+from app.api.routes.atlas_intelligence import router as atlas_intelligence_router
 from app.pipeline.core.orchestrator import PipelineOrchestrator
 from app.scheduler.tasks import (
     delete_connector,
@@ -47,6 +48,9 @@ app.include_router(health_router)
 
 # Include enhanced catalog router (Phase 4)
 app.include_router(enhanced_catalog_router)
+
+# Include AtlasIntelligence router (Phase 5)
+app.include_router(atlas_intelligence_router)
 
 # In-memory storage
 pipeline_runs: dict[str, dict[str, Any]] = {}
