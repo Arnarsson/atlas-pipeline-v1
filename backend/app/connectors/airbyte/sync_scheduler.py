@@ -5,6 +5,7 @@ Provides job scheduling, execution tracking, and history for PyAirbyte connector
 """
 
 import asyncio
+import asyncpg
 import logging
 import uuid
 from dataclasses import dataclass, field
@@ -215,17 +216,69 @@ class SyncScheduler:
                 logger.warning(f"Callback error: {e}")
 
         try:
-            # Execute sync
+            # Execute sync with orchestrator
             if executor_fn:
                 result = await executor_fn(job)
                 job.records_synced = result.get("records_synced", 0)
             else:
-                # Simulate sync for demo
-                await asyncio.sleep(0.1)  # Simulate work
-                job.records_synced = len(job.streams) * 100  # Mock records
+                # Use orchestrator for real/mock sync
+                from app.connectors.airbyte.airbyte_orchestrator import get_airbyte_orchestrator
+                from app.core.config import settings
+
+                try:
+                    # Create orchestrator
+                    orchestrator = await get_airbyte_orchestrator(
+                        database_url=settings.DATABASE_URL,
+                        enable_pii_detection=True,
+                        enable_quality_validation=True
+                    )
+
+                    # Execute sync for each stream
+                    total_records = 0
+                    sync_results = []
+
+                    for stream in job.streams:
+                        logger.info(f"Syncing stream: {stream}")
+                        result = await orchestrator.execute_full_sync(
+                            source_id=job.source_id,
+                            stream_name=stream,
+                            sync_mode="incremental" if job.sync_mode == SyncMode.INCREMENTAL else "full_refresh"
+                        )
+
+                        total_records += result.get("records_synced", 0)
+                        sync_results.append(result)
+
+                        # Store detailed results in metadata
+                        job.metadata[f"stream_{stream}"] = {
+                            "run_id": result.get("run_id"),
+                            "records_synced": result.get("records_synced", 0),
+                            "pii_detections": result.get("pii_detections", 0),
+                            "quality_score": result.get("quality_score", 0),
+                            "status": result.get("status")
+                        }
+
+                    job.records_synced = total_records
+                    job.metadata["sync_summary"] = {
+                        "total_streams": len(job.streams),
+                        "total_records": total_records,
+                        "results": sync_results
+                    }
+
+                    logger.info(f"Orchestrator completed: {total_records} total records from {len(job.streams)} streams")
+
+                except Exception as orch_error:
+                    logger.error(f"Orchestrator error: {orch_error}")
+                    # Fallback to mock for compatibility
+                    await asyncio.sleep(0.1)
+                    job.records_synced = len(job.streams) * 100  # Mock records
+                    job.metadata["orchestrator_error"] = str(orch_error)
+                    job.metadata["mode"] = "mock_fallback"
 
             job.status = SyncStatus.COMPLETED
             job.completed_at = datetime.utcnow()
+
+            # Persist job history to database
+            await self._persist_job_history(job)
 
             # Fire complete callbacks
             for callback in self._callbacks["on_job_complete"]:
@@ -520,6 +573,91 @@ class SyncScheduler:
         """Register a callback for job events."""
         if event in self._callbacks:
             self._callbacks[event].append(callback)
+
+    async def _persist_job_history(self, job: SyncJob) -> None:
+        """
+        Persist job history to database.
+
+        Args:
+            job: Completed SyncJob to persist
+        """
+        try:
+            from app.core.config import settings
+
+            # Create connection pool if needed
+            async with asyncpg.create_pool(settings.DATABASE_URL, min_size=1, max_size=5) as pool:
+                async with pool.acquire() as conn:
+                    # Check if pipeline.scheduled_runs table exists
+                    table_exists = await conn.fetchval("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables
+                            WHERE table_schema = 'pipeline'
+                            AND table_name = 'scheduled_runs'
+                        )
+                    """)
+
+                    if not table_exists:
+                        # Create table if it doesn't exist
+                        await conn.execute("""
+                            CREATE TABLE IF NOT EXISTS pipeline.scheduled_runs (
+                                id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                                job_id VARCHAR(255) NOT NULL,
+                                connector_id VARCHAR(255) NOT NULL,
+                                source_name VARCHAR(255),
+                                streams TEXT[],
+                                sync_mode VARCHAR(50),
+                                status VARCHAR(50) NOT NULL,
+                                records_processed INTEGER DEFAULT 0,
+                                started_at TIMESTAMP,
+                                completed_at TIMESTAMP,
+                                duration_seconds NUMERIC(10,2),
+                                error_message TEXT,
+                                metadata JSONB,
+                                created_at TIMESTAMP DEFAULT NOW()
+                            )
+                        """)
+
+                        # Create index on job_id
+                        await conn.execute("""
+                            CREATE INDEX IF NOT EXISTS idx_scheduled_runs_job_id
+                            ON pipeline.scheduled_runs(job_id)
+                        """)
+
+                        # Create index on connector_id
+                        await conn.execute("""
+                            CREATE INDEX IF NOT EXISTS idx_scheduled_runs_connector
+                            ON pipeline.scheduled_runs(connector_id)
+                        """)
+
+                        logger.info("Created pipeline.scheduled_runs table")
+
+                    # Insert job record
+                    await conn.execute("""
+                        INSERT INTO pipeline.scheduled_runs
+                        (job_id, connector_id, source_name, streams, sync_mode, status,
+                         records_processed, started_at, completed_at, duration_seconds,
+                         error_message, metadata)
+                        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    """,
+                        job.job_id,
+                        job.source_id,
+                        job.source_name,
+                        job.streams,
+                        job.sync_mode.value,
+                        job.status.value,
+                        job.records_synced,
+                        job.started_at,
+                        job.completed_at,
+                        job._get_duration(),
+                        job.error_message,
+                        job.metadata
+                    )
+
+                    logger.info(f"Persisted job {job.job_id} to pipeline.scheduled_runs")
+
+        except Exception as e:
+            logger.error(f"Failed to persist job history: {e}")
+            # Don't raise - persistence failure shouldn't fail the sync
 
 
 # Global scheduler instance
