@@ -20,6 +20,15 @@ except ImportError as e:
     from app.pipeline.pii.detector import SimplePIIDetector
     from app.pipeline.quality.checker import SimpleQualityChecker
 
+# Phase 6: Data storage for profiling
+try:
+    from app.storage.data_store import store_pipeline_data
+
+    DATA_STORE_AVAILABLE = True
+except ImportError as e:
+    logger.warning(f"Data store not available: {e}")
+    DATA_STORE_AVAILABLE = False
+
 
 def _convert_numpy_types(obj: Any) -> Any:
     """
@@ -154,6 +163,19 @@ class PipelineOrchestrator:
                 "quality_validator": "soda-core" if self.use_week3 else "basic",
                 "week3_enabled": self.use_week3,
             }
+
+            # Phase 6: Store DataFrame for profiling
+            if DATA_STORE_AVAILABLE:
+                try:
+                    stored = store_pipeline_data(
+                        run_id=run_id,
+                        dataset_name=dataset_name,
+                        filename=filename,
+                        df=df,
+                    )
+                    logger.info(f"[{run_id}] Stored data for profiling: {stored.dataset_id}")
+                except Exception as e:
+                    logger.warning(f"[{run_id}] Failed to store data for profiling: {e}")
 
             # Complete - convert all numpy types to Python types for JSON serialization
             storage[run_id]["status"] = "completed"

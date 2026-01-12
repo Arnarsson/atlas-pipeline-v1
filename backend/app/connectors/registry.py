@@ -13,6 +13,7 @@ PostgreSQLConnector = None
 RESTAPIConnector = None
 GoogleSheetsConnector = None
 SalesforceConnector = None
+KafkaConsumerConnector = None
 
 try:
     from app.connectors.mysql import MySQLConnector
@@ -39,6 +40,11 @@ try:
 except (ImportError, Exception) as e:
     logger.warning(f"Salesforce connector not available: {e}")
 
+try:
+    from app.connectors.kafka import KafkaConsumerConnector
+except ImportError as e:
+    logger.warning(f"Kafka connector not available: {e}")
+
 
 class ConnectorRegistry:
     """Registry for all available data source connectors.
@@ -62,6 +68,8 @@ class ConnectorRegistry:
         _connectors["google_sheets"] = GoogleSheetsConnector
     if SalesforceConnector is not None:
         _connectors["salesforce"] = SalesforceConnector
+    if KafkaConsumerConnector is not None:
+        _connectors["kafka"] = KafkaConsumerConnector
 
     @classmethod
     def get_connector(cls, source_type: str) -> Type[SourceConnector]:
