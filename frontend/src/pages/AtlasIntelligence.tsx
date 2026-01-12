@@ -20,10 +20,13 @@ import {
   X,
   Search,
   Layers,
-  Package
+  Package,
+  FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/api/client';
+import ConnectorConfigWizard from '@/components/ConnectorConfigWizard';
+import SchemaBrowser from '@/components/SchemaBrowser';
 
 // Types for connectors
 interface AirbyteConnector {
@@ -150,6 +153,8 @@ export default function AtlasIntelligence() {
   const [showApiKey, setShowApiKey] = useState(false);
   const [pyairbyteSearch, setPyairbyteSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [configWizardConnector, setConfigWizardConnector] = useState<PyAirbyteConnector | null>(null);
+  const [schemaBrowserConnector, setSchemaBrowserConnector] = useState<PyAirbyteConnector | null>(null);
   const queryClient = useQueryClient();
 
   // MCP Queries
@@ -773,7 +778,7 @@ export default function AtlasIntelligence() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {pyairbyteConnectors.map((connector) => (
-                <Card key={connector.id} className="hover:border-[hsl(var(--foreground))] transition-colors cursor-pointer">
+                <Card key={connector.id} className="hover:border-[hsl(var(--foreground))] transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center gap-2">
@@ -797,9 +802,24 @@ export default function AtlasIntelligence() {
                       <span className="text-xs px-2 py-0.5 rounded bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]">
                         {connector.category}
                       </span>
-                      <Button size="sm" variant="outline">
-                        Configure
-                      </Button>
+                      <div className="flex gap-1">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => setSchemaBrowserConnector(connector)}
+                          title="View Schema"
+                        >
+                          <FileText className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setConfigWizardConnector(connector)}
+                        >
+                          <Settings className="w-3 h-3 mr-1" />
+                          Configure
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -878,6 +898,27 @@ export default function AtlasIntelligence() {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Connector Configuration Wizard Modal */}
+      {configWizardConnector && (
+        <ConnectorConfigWizard
+          connector={configWizardConnector}
+          onClose={() => setConfigWizardConnector(null)}
+          onSuccess={(sourceId) => {
+            toast.success(`Connector ${configWizardConnector.name} configured with ID: ${sourceId}`);
+            queryClient.invalidateQueries({ queryKey: ['pyairbyte-connectors'] });
+          }}
+        />
+      )}
+
+      {/* Schema Browser Modal */}
+      {schemaBrowserConnector && (
+        <SchemaBrowser
+          sourceName={schemaBrowserConnector.id}
+          sourceDisplayName={schemaBrowserConnector.name}
+          onClose={() => setSchemaBrowserConnector(null)}
+        />
       )}
     </div>
   );
