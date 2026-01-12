@@ -1,13 +1,28 @@
 """Connector registry for managing available data source connectors."""
 
 from typing import Dict, List, Type
+import logging
 
 from app.connectors.base import SourceConnector
-from app.connectors.google_sheets import GoogleSheetsConnector
 from app.connectors.mysql import MySQLConnector
 from app.connectors.postgresql import PostgreSQLConnector
 from app.connectors.rest_api import RESTAPIConnector
-from app.connectors.salesforce import SalesforceConnector
+
+logger = logging.getLogger(__name__)
+
+# Optional connectors with graceful fallback
+GoogleSheetsConnector = None
+SalesforceConnector = None
+
+try:
+    from app.connectors.google_sheets import GoogleSheetsConnector
+except ImportError as e:
+    logger.warning(f"Google Sheets connector not available: {e}")
+
+try:
+    from app.connectors.salesforce import SalesforceConnector
+except ImportError as e:
+    logger.warning(f"Salesforce connector not available: {e}")
 
 
 class ConnectorRegistry:
@@ -23,9 +38,13 @@ class ConnectorRegistry:
         "postgresql": PostgreSQLConnector,
         "mysql": MySQLConnector,
         "rest_api": RESTAPIConnector,
-        "google_sheets": GoogleSheetsConnector,
-        "salesforce": SalesforceConnector,
     }
+
+    # Add optional connectors if available
+    if GoogleSheetsConnector is not None:
+        _connectors["google_sheets"] = GoogleSheetsConnector
+    if SalesforceConnector is not None:
+        _connectors["salesforce"] = SalesforceConnector
 
     @classmethod
     def get_connector(cls, source_type: str) -> Type[SourceConnector]:

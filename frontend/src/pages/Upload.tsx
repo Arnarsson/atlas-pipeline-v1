@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Download, Upload as UploadIcon, Activity, Shield } from 'lucide-react';
+import { Download, Activity, Shield } from 'lucide-react';
 import CSVDropzone from '@/components/Upload/CSVDropzone';
 import QualityDashboard from '@/components/Quality/QualityDashboard';
 import PIITable from '@/components/PII/PIITable';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { getQualityMetrics, getPIIReport, downloadReport } from '@/api/client';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
 export default function Upload() {
