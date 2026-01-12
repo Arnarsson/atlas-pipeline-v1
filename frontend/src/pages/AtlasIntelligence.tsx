@@ -21,12 +21,14 @@ import {
   Search,
   Layers,
   Package,
-  FileText
+  FileText,
+  Activity
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/api/client';
 import ConnectorConfigWizard from '@/components/ConnectorConfigWizard';
 import SchemaBrowser from '@/components/SchemaBrowser';
+import SyncStatusPanel from '@/components/SyncStatusPanel';
 
 // Types for connectors
 interface AirbyteConnector {
@@ -155,6 +157,7 @@ export default function AtlasIntelligence() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [configWizardConnector, setConfigWizardConnector] = useState<PyAirbyteConnector | null>(null);
   const [schemaBrowserConnector, setSchemaBrowserConnector] = useState<PyAirbyteConnector | null>(null);
+  const [showSyncStatus, setShowSyncStatus] = useState(false);
   const queryClient = useQueryClient();
 
   // MCP Queries
@@ -308,6 +311,13 @@ export default function AtlasIntelligence() {
           </p>
         </div>
         <div className="flex gap-2">
+          <Button
+            variant={showSyncStatus ? "default" : "outline"}
+            onClick={() => setShowSyncStatus(!showSyncStatus)}
+          >
+            <Activity className="w-4 h-4 mr-2" />
+            Sync Status
+          </Button>
           <Button
             variant={showCredentials ? "default" : "outline"}
             onClick={() => setShowCredentials(!showCredentials)}
@@ -532,6 +542,28 @@ export default function AtlasIntelligence() {
                 );
               })}
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Sync Status Panel */}
+      {showSyncStatus && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-[hsl(var(--foreground))]">
+                <Activity className="w-5 h-5 inline mr-2" />
+                Sync Status & Job Management
+              </h3>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setShowSyncStatus(false)}
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <SyncStatusPanel />
           </CardContent>
         </Card>
       )}
