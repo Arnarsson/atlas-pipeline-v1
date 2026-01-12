@@ -16,10 +16,12 @@ import {
   Activity,
   BarChart3,
   Timer,
-  AlertCircle
+  AlertCircle,
+  Eye
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/api/client';
+import SyncResultModal from './SyncResultModal';
 
 // Types
 interface SyncJob {
@@ -107,9 +109,15 @@ const deleteSchedule = async (scheduleId: string) => {
   return response.data;
 };
 
+const getSyncJobResult = async (jobId: string) => {
+  const response = await api.get(`/atlas-intelligence/sync/jobs/${jobId}/result`);
+  return response.data;
+};
+
 export default function SyncStatusPanel(_props: SyncStatusPanelProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'jobs' | 'schedules'>('overview');
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
+  const [selectedJobResult, setSelectedJobResult] = useState<any | null>(null);
   const queryClient = useQueryClient();
 
   // Queries
@@ -183,6 +191,16 @@ export default function SyncStatusPanel(_props: SyncStatusPanelProps) {
     },
     onError: () => {
       toast.error('Failed to delete schedule');
+    },
+  });
+
+  const fetchJobResultMutation = useMutation({
+    mutationFn: getSyncJobResult,
+    onSuccess: (data) => {
+      setSelectedJobResult(data);
+    },
+    onError: () => {
+      toast.error('Failed to fetch job results');
     },
   });
 
@@ -518,6 +536,20 @@ export default function SyncStatusPanel(_props: SyncStatusPanelProps) {
                             <Timer className="w-3 h-3 inline mr-1" />
                             {formatDuration(job.duration_seconds)}
                           </span>
+                          {job.status === 'completed' && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                fetchJobResultMutation.mutate(job.job_id);
+                              }}
+                              disabled={fetchJobResultMutation.isPending}
+                              title="View detailed results"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                          )}
                           {expandedJob === job.job_id ? (
                             <ChevronUp className="w-4 h-4 text-[hsl(var(--muted-foreground))]" />
                           ) : (
@@ -714,6 +746,14 @@ export default function SyncStatusPanel(_props: SyncStatusPanelProps) {
             )}
           </CardContent>
         </Card>
+      )}
+
+      {/* Sync Result Modal */}
+      {selectedJobResult && (
+        <SyncResultModal
+          result={selectedJobResult}
+          onClose={() => setSelectedJobResult(null)}
+        />
       )}
     </div>
   );

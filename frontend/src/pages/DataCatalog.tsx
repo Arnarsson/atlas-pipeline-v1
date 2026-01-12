@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   Database,
@@ -9,6 +10,9 @@ import {
   FileText,
   Download,
   X,
+  Package,
+  Upload,
+  Filter,
 } from 'lucide-react';
 import { searchDatasets, getDatasetQualityHistory } from '@/api/client';
 import type { Dataset, QualityHistory } from '@/types';
@@ -26,9 +30,19 @@ const AVAILABLE_TAGS = [
   'Analytics',
 ];
 
+const SOURCE_TYPES = [
+  { value: 'all', label: 'All Sources', icon: Database },
+  { value: 'csv', label: 'CSV Uploads', icon: Upload },
+  { value: 'airbyte', label: 'Airbyte Syncs', icon: Package },
+];
+
 export default function DataCatalog() {
+  const [searchParams] = useSearchParams();
+  const runIdFromUrl = searchParams.get('run_id');
+
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedSourceType, setSelectedSourceType] = useState<string>('all');
   const [selectedDataset, setSelectedDataset] = useState<Dataset | null>(null);
 
   const { data: datasets, isLoading } = useQuery({
@@ -56,6 +70,21 @@ export default function DataCatalog() {
     };
     return styles[layer as keyof typeof styles] || 'bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]';
   };
+
+  const getSourceTypeBadge = (sourceType: string) => {
+    if (sourceType === 'airbyte' || sourceType?.includes('airbyte')) {
+      return { label: 'Airbyte', color: 'bg-blue-500/10 text-blue-600', icon: Package };
+    }
+    return { label: 'CSV', color: 'bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]', icon: Upload };
+  };
+
+  // Filter datasets by source type
+  const filteredDatasets = datasets?.filter((dataset: Dataset) => {
+    if (selectedSourceType === 'all') return true;
+    const datasetSource = dataset.name?.toLowerCase().includes('airbyte') ||
+                         dataset.description?.toLowerCase().includes('airbyte') ? 'airbyte' : 'csv';
+    return datasetSource === selectedSourceType;
+  });
 
   const downloadSchema = (dataset: Dataset) => {
     const dataStr = JSON.stringify(dataset.schema, null, 2);
@@ -93,6 +122,33 @@ export default function DataCatalog() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 border border-[hsl(var(--input))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
             />
+          </div>
+
+          {/* Source Type Filter */}
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Filter className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />
+              <span className="text-sm font-medium text-[hsl(var(--foreground))]">Source type:</span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {SOURCE_TYPES.map((sourceType) => {
+                const Icon = sourceType.icon;
+                return (
+                  <button
+                    key={sourceType.value}
+                    onClick={() => setSelectedSourceType(sourceType.value)}
+                    className={`px-3 py-1 rounded-full text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                      selectedSourceType === sourceType.value
+                        ? 'bg-[hsl(var(--foreground))] text-[hsl(var(--background))]'
+                        : 'bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))] hover:bg-[hsl(var(--secondary)/0.8)]'
+                    }`}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {sourceType.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Tag Filters */}
@@ -133,24 +189,38 @@ export default function DataCatalog() {
             </Card>
           ))}
         </div>
-      ) : datasets && datasets.length > 0 ? (
+      ) : filteredDatasets && filteredDatasets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {datasets.map((dataset: Dataset) => (
-            <Card
-              key={dataset.id}
-              className="cursor-pointer hover:border-[hsl(var(--foreground)/0.2)] transition-colors"
-              onClick={() => setSelectedDataset(dataset)}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <Database className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
-                    <h3 className="font-semibold text-[hsl(var(--foreground))]">{dataset.name}</h3>
+          {filteredDatasets.map((dataset: Dataset) => {
+            const sourceType = dataset.name?.toLowerCase().includes('airbyte') ||
+                              dataset.description?.toLowerCase().includes('airbyte') ? 'airbyte' : 'csv';
+            const sourceBadge = getSourceTypeBadge(sourceType);
+            const SourceIcon = sourceBadge.icon;
+
+            return (
+              <Card
+                key={dataset.id}
+                className="cursor-pointer hover:border-[hsl(var(--foreground)/0.2)] transition-colors"
+                onClick={() => setSelectedDataset(dataset)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Database className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+                      <h3 className="font-semibold text-[hsl(var(--foreground))]">{dataset.name}</h3>
+                    </div>
+                    <span className={`px-2 py-1 text-xs font-medium rounded ${getLayerBadge(dataset.layer)}`}>
+                      {dataset.layer}
+                    </span>
                   </div>
-                  <span className={`px-2 py-1 text-xs font-medium rounded ${getLayerBadge(dataset.layer)}`}>
-                    {dataset.layer}
-                  </span>
-                </div>
+
+                  {/* Source Type Badge */}
+                  <div className="mb-4">
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded ${sourceBadge.color}`}>
+                      <SourceIcon className="h-3 w-3" />
+                      {sourceBadge.label}
+                    </span>
+                  </div>
 
                 {dataset.description && (
                   <p className="text-sm text-[hsl(var(--muted-foreground))] mb-4 line-clamp-2">
@@ -200,7 +270,8 @@ export default function DataCatalog() {
                 )}
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <Card>
