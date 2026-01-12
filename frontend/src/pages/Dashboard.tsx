@@ -6,7 +6,6 @@ import {
   Shield,
   TrendingUp,
   ArrowRight,
-  Clock,
   CheckCircle,
   AlertTriangle,
   FileCheck,

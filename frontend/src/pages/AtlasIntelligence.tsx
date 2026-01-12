@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, ReactNode } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -270,7 +270,7 @@ export default function AtlasIntelligence() {
   };
 
   const getConnectorIcon = (id: string) => {
-    const iconMap: Record<string, JSX.Element> = {
+    const iconMap: Record<string, ReactNode> = {
       'n8n': <Zap className="w-5 h-5 text-orange-500" />,
       'github': <Cloud className="w-5 h-5 text-gray-700" />,
       'stripe': <Database className="w-5 h-5 text-purple-500" />,
@@ -289,7 +289,7 @@ export default function AtlasIntelligence() {
   };
 
   const getCategoryIcon = (category: string) => {
-    const icons: Record<string, JSX.Element> = {
+    const icons: Record<string, ReactNode> = {
       database: <Database className="w-4 h-4" />,
       crm: <Cloud className="w-4 h-4" />,
       marketing: <Zap className="w-4 h-4" />,

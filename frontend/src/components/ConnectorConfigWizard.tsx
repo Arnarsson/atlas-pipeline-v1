@@ -101,7 +101,7 @@ export default function ConnectorConfigWizard({ connector, onClose, onSuccess }:
   });
 
   // Discover streams
-  const { data: streamsData, isLoading: loadingStreams, refetch: refetchStreams } = useQuery({
+  const { data: streamsData, isLoading: loadingStreams } = useQuery({
     queryKey: ['connector-streams', connector.id],
     queryFn: () => discoverStreams(connector.id),
     enabled: step === 'streams',

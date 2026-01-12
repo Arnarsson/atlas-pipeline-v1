@@ -67,7 +67,7 @@ export default function Connectors() {
     );
   };
 
-  const getTypeIcon = (type: Connector['type']) => {
+  const getTypeIcon = (_type: Connector['type']) => {
     return <Database className="h-4 w-4 text-[hsl(var(--muted-foreground))]" />;
   };
 

@@ -107,7 +107,7 @@ const deleteSchedule = async (scheduleId: string) => {
   return response.data;
 };
 
-export default function SyncStatusPanel({ onClose }: SyncStatusPanelProps) {
+export default function SyncStatusPanel(_props: SyncStatusPanelProps) {
   const [activeSection, setActiveSection] = useState<'overview' | 'jobs' | 'schedules'>('overview');
   const [expandedJob, setExpandedJob] = useState<string | null>(null);
   const queryClient = useQueryClient();
@@ -119,7 +119,7 @@ export default function SyncStatusPanel({ onClose }: SyncStatusPanelProps) {
     refetchInterval: 5000,
   });
 
-  const { data: runningJobs = [], isLoading: loadingRunning } = useQuery({
+  const { data: runningJobs = [] } = useQuery({
     queryKey: ['sync-running'],
     queryFn: getRunningJobs,
     refetchInterval: 3000,
