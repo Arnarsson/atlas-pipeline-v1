@@ -2,9 +2,10 @@
 PyAirbyte State Manager - Persist sync state for incremental loads.
 
 Manages state persistence for Airbyte connectors to enable incremental syncs.
-State is stored in-memory by default, with optional PostgreSQL persistence.
+State is stored in PostgreSQL for production use, with in-memory caching.
 """
 
+import asyncpg
 import json
 import logging
 from dataclasses import dataclass, field
@@ -154,36 +155,179 @@ class StateManager:
     """
     Manages state persistence for PyAirbyte connectors.
 
-    Provides in-memory caching with optional file-based persistence.
-    For production, extend to use PostgreSQL.
+    Provides in-memory caching with PostgreSQL persistence for production.
+    Falls back to file-based persistence if database is unavailable.
     """
 
-    def __init__(self, storage_path: Optional[Path] = None):
+    def __init__(self, database_url: Optional[str] = None, storage_path: Optional[Path] = None):
         """
         Initialize state manager.
 
         Args:
-            storage_path: Path for file-based persistence (optional)
+            database_url: PostgreSQL connection URL (preferred)
+            storage_path: Path for file-based persistence fallback (optional)
         """
         self._states: Dict[str, SourceState] = {}
+        self._database_url = database_url
         self._storage_path = storage_path or Path("/tmp/atlas_airbyte_state")
         self._storage_path.mkdir(parents=True, exist_ok=True)
-        self._load_persisted_states()
+        self._use_database = bool(database_url)
 
-    def _load_persisted_states(self) -> None:
-        """Load states from disk on startup."""
+        # Initialize database table if using database
+        if self._use_database:
+            try:
+                import asyncio
+                asyncio.get_event_loop().run_until_complete(self._ensure_database_table())
+                asyncio.get_event_loop().run_until_complete(self._load_persisted_states_from_db())
+                logger.info(f"State manager using PostgreSQL persistence")
+            except Exception as e:
+                logger.warning(f"Failed to initialize database, falling back to file storage: {e}")
+                self._use_database = False
+                self._load_persisted_states_from_files()
+        else:
+            self._load_persisted_states_from_files()
+
+    async def _ensure_database_table(self) -> None:
+        """Ensure pipeline.connector_state table exists."""
+        try:
+            async with asyncpg.create_pool(self._database_url, min_size=1, max_size=3) as pool:
+                async with pool.acquire() as conn:
+                    await conn.execute("""
+                        CREATE TABLE IF NOT EXISTS pipeline.connector_state (
+                            id SERIAL PRIMARY KEY,
+                            source_id VARCHAR(255) NOT NULL,
+                            source_name VARCHAR(255) NOT NULL,
+                            stream_name VARCHAR(255),
+                            cursor_field VARCHAR(255),
+                            cursor_value TEXT,
+                            sync_mode VARCHAR(50) DEFAULT 'full_refresh',
+                            state_data JSONB NOT NULL,
+                            last_synced_at TIMESTAMP,
+                            records_synced INTEGER DEFAULT 0,
+                            created_at TIMESTAMP DEFAULT NOW(),
+                            updated_at TIMESTAMP DEFAULT NOW(),
+                            version INTEGER DEFAULT 1,
+                            UNIQUE(source_id, stream_name)
+                        )
+                    """)
+
+                    # Create indexes
+                    await conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_connector_state_source
+                        ON pipeline.connector_state(source_id)
+                    """)
+
+                    await conn.execute("""
+                        CREATE INDEX IF NOT EXISTS idx_connector_state_stream
+                        ON pipeline.connector_state(source_id, stream_name)
+                    """)
+
+                    logger.info("Ensured pipeline.connector_state table exists")
+        except Exception as e:
+            logger.error(f"Failed to create connector_state table: {e}")
+            raise
+
+    async def _load_persisted_states_from_db(self) -> None:
+        """Load states from PostgreSQL on startup."""
+        try:
+            async with asyncpg.create_pool(self._database_url, min_size=1, max_size=3) as pool:
+                async with pool.acquire() as conn:
+                    # Load all source states
+                    rows = await conn.fetch("""
+                        SELECT DISTINCT source_id, source_name, state_data
+                        FROM pipeline.connector_state
+                        WHERE stream_name = '' OR stream_name IS NULL
+                    """)
+
+                    for row in rows:
+                        try:
+                            state_data = row['state_data']
+                            if isinstance(state_data, str):
+                                state_data = json.loads(state_data)
+
+                            state = SourceState.from_dict(state_data)
+                            self._states[state.source_id] = state
+                        except Exception as e:
+                            logger.warning(f"Failed to load state for {row['source_id']}: {e}")
+
+                    logger.info(f"Loaded {len(self._states)} persisted states from database")
+        except Exception as e:
+            logger.warning(f"Failed to load persisted states from database: {e}")
+
+    def _load_persisted_states_from_files(self) -> None:
+        """Load states from disk (fallback mode)."""
         try:
             for state_file in self._storage_path.glob("*.json"):
                 with open(state_file, "r") as f:
                     data = json.load(f)
                     state = SourceState.from_dict(data)
                     self._states[state.source_id] = state
-            logger.info(f"Loaded {len(self._states)} persisted states")
+            logger.info(f"Loaded {len(self._states)} persisted states from files")
         except Exception as e:
-            logger.warning(f"Failed to load persisted states: {e}")
+            logger.warning(f"Failed to load persisted states from files: {e}")
 
-    def _persist_state(self, source_id: str) -> None:
-        """Persist a single source's state to disk."""
+    async def _persist_state_to_db(self, source_id: str) -> None:
+        """Persist a single source's state to PostgreSQL."""
+        if source_id not in self._states:
+            return
+
+        try:
+            state = self._states[source_id]
+            async with asyncpg.create_pool(self._database_url, min_size=1, max_size=3) as pool:
+                async with pool.acquire() as conn:
+                    # Upsert source-level state
+                    await conn.execute("""
+                        INSERT INTO pipeline.connector_state
+                        (source_id, source_name, stream_name, state_data, updated_at, version)
+                        VALUES ($1, $2, '', $3, NOW(), $4)
+                        ON CONFLICT (source_id, stream_name)
+                        DO UPDATE SET
+                            state_data = EXCLUDED.state_data,
+                            updated_at = NOW(),
+                            version = EXCLUDED.version
+                    """,
+                        state.source_id,
+                        state.source_name,
+                        json.dumps(state.to_dict()),
+                        state.version
+                    )
+
+                    # Upsert each stream state
+                    for stream_name, stream_state in state.streams.items():
+                        await conn.execute("""
+                            INSERT INTO pipeline.connector_state
+                            (source_id, source_name, stream_name, cursor_field, cursor_value,
+                             sync_mode, state_data, last_synced_at, records_synced, updated_at)
+                            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+                            ON CONFLICT (source_id, stream_name)
+                            DO UPDATE SET
+                                cursor_field = EXCLUDED.cursor_field,
+                                cursor_value = EXCLUDED.cursor_value,
+                                sync_mode = EXCLUDED.sync_mode,
+                                state_data = EXCLUDED.state_data,
+                                last_synced_at = EXCLUDED.last_synced_at,
+                                records_synced = EXCLUDED.records_synced,
+                                updated_at = NOW()
+                        """,
+                            state.source_id,
+                            state.source_name,
+                            stream_name,
+                            stream_state.cursor_field,
+                            str(stream_state.cursor_value) if stream_state.cursor_value else None,
+                            stream_state.sync_mode,
+                            json.dumps(stream_state.to_dict()),
+                            stream_state.last_synced_at,
+                            stream_state.records_synced
+                        )
+
+                    logger.debug(f"Persisted state for {source_id} to database")
+        except Exception as e:
+            logger.error(f"Failed to persist state to database for {source_id}: {e}")
+            # Fallback to file persistence
+            self._persist_state_to_file(source_id)
+
+    def _persist_state_to_file(self, source_id: str) -> None:
+        """Persist a single source's state to disk (fallback)."""
         if source_id not in self._states:
             return
 
@@ -192,9 +336,22 @@ class StateManager:
             state_file = self._storage_path / f"{source_id}.json"
             with open(state_file, "w") as f:
                 json.dump(state.to_dict(), f, indent=2)
-            logger.debug(f"Persisted state for {source_id}")
+            logger.debug(f"Persisted state for {source_id} to file")
         except Exception as e:
-            logger.error(f"Failed to persist state for {source_id}: {e}")
+            logger.error(f"Failed to persist state to file for {source_id}: {e}")
+
+    def _persist_state(self, source_id: str) -> None:
+        """Persist state using configured method."""
+        if self._use_database:
+            # Run async persistence
+            import asyncio
+            try:
+                asyncio.get_event_loop().run_until_complete(self._persist_state_to_db(source_id))
+            except Exception as e:
+                logger.warning(f"Database persistence failed, falling back to file: {e}")
+                self._persist_state_to_file(source_id)
+        else:
+            self._persist_state_to_file(source_id)
 
     def get_state(self, source_id: str) -> Optional[SourceState]:
         """
@@ -485,9 +642,26 @@ class StateManager:
 _state_manager: Optional[StateManager] = None
 
 
-def get_state_manager() -> StateManager:
-    """Get or create global state manager instance."""
+def get_state_manager(database_url: Optional[str] = None) -> StateManager:
+    """
+    Get or create global state manager instance.
+
+    Args:
+        database_url: Optional PostgreSQL connection URL.
+                     If not provided, attempts to load from settings.
+
+    Returns:
+        StateManager instance with PostgreSQL persistence (or file fallback)
+    """
     global _state_manager
     if _state_manager is None:
-        _state_manager = StateManager()
+        # Try to get database URL from settings if not provided
+        if database_url is None:
+            try:
+                from app.core.config import settings
+                database_url = settings.DATABASE_URL
+            except Exception as e:
+                logger.warning(f"Failed to load database URL from settings: {e}")
+
+        _state_manager = StateManager(database_url=database_url)
     return _state_manager
