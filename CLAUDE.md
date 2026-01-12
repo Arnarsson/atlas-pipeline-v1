@@ -996,10 +996,10 @@ npm install  # Frontend
 
 ## 🔧 Recent Updates
 
-### **Airbyte Database Integration** (January 12, 2026, 22:10 UTC)
-✅ **PHASES 2-4 COMPLETE: END-TO-END DATA FLOW**
+### **Airbyte Database Integration** (January 12, 2026, 23:45 UTC)
+✅ **PHASES 2-5 COMPLETE: DATABASE + STATE PERSISTENCE**
 
-**Status**: 75% Complete (Phases 2-4 done, 7h | Phases 5-7 remaining, 5.5h)
+**Status**: 68% Complete (Phases 2-5 done, 8.5h | Phases 6-7 remaining, 4h)
 
 **What Was Built:**
 - ✅ Phase 2: **Database Writer** (3h) - `database_writer.py` (474 lines)
@@ -1031,6 +1031,14 @@ npm install  # Frontend
   - Auto-creates table with proper indexes
   - Backward compatible with custom executor functions
 
+- ✅ Phase 5: **State Persistence** (1.5h) - Modified `state_manager.py` (+210 lines)
+  - PostgreSQL state persistence (replaces /tmp/ files)
+  - Auto-creates `pipeline.connector_state` table
+  - Stores source and stream states with JSONB
+  - Incremental sync cursor tracking
+  - Graceful fallback to file storage
+  - In-memory caching for performance
+
 **Data Flow (NOW COMPLETE):**
 ```
 Frontend: Click "Sync Now"
@@ -1057,6 +1065,7 @@ Frontend: Show results + link to Catalog/Quality/PII
 - `backend/app/connectors/airbyte/database_writer.py` (NEW, 474 lines)
 - `backend/app/connectors/airbyte/airbyte_orchestrator.py` (NEW, 398 lines)
 - `backend/app/connectors/airbyte/sync_scheduler.py` (MODIFIED, +142 lines)
+- `backend/app/connectors/airbyte/state_manager.py` (MODIFIED, +210 lines)
 - `backend/requirements-simple.txt` (MODIFIED, +1 line: airbyte>=0.20.0)
 - `backend/AIRBYTE_COMPLETION_STATUS.md` (NEW, 660 lines - comprehensive status doc)
 
@@ -1067,8 +1076,7 @@ Frontend: Show results + link to Catalog/Quality/PII
 - ✅ CSV upload test: 97% quality, 7 PII detections
 - ⏸️ E2E tests pending (Phase 7)
 
-**Next Steps (Remaining 5.5 hours):**
-- Phase 5: State Persistence to PostgreSQL (1.5h) - Move from /tmp/ to database
+**Next Steps (Remaining 4 hours):**
 - Phase 6: Frontend Integration (2h) - Show sync results, link to dashboards
 - Phase 7: Testing & Validation (2h) - Integration + E2E tests
 
@@ -1084,13 +1092,14 @@ For web Claude Code, read:
 2. ~/.claude/plans/tranquil-stirring-rabbit.md - Complete plan
 3. CLAUDE.md - Project context
 
-Continue with Phase 5: Persist state to database
+Continue with Phase 6: Frontend integration
 ```
 
 **Commits:**
 - `d95fcf4`: Add database writer for Explore/Chart/Navigate layers
 - `c184a3e`: Add Airbyte orchestrator for complete pipeline coordination
 - `3266324`: Integrate Airbyte orchestrator with sync scheduler
+- `b9a68fd`: Add PostgreSQL persistence to Airbyte state manager
 
 ---
 
