@@ -511,3 +511,184 @@ async def get_platform_stats() -> Dict[str, Any]:
         "total_available": len(MCP_CONNECTORS) + pyairbyte_health["total_available_connectors"],
         "pyairbyte_ready": pyairbyte_health["pyairbyte_installed"]
     }
+
+
+# ============================================================================
+# State Management (Incremental Syncs)
+# ============================================================================
+
+
+from app.connectors.airbyte.state_manager import get_state_manager
+
+
+class CreateStateRequest(BaseModel):
+    """Request to create a new state for a source."""
+    source_name: str
+    source_id: str
+    streams: List[str] = Field(default_factory=list)
+    global_state: Dict[str, Any] = Field(default_factory=dict)
+
+
+class UpdateStreamStateRequest(BaseModel):
+    """Request to update stream state."""
+    stream_name: str
+    cursor_field: Optional[str] = None
+    cursor_value: Optional[Any] = None
+    sync_mode: str = "incremental"
+    records_synced: int = 0
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+
+@router.get("/state/sources")
+async def list_source_states() -> List[Dict[str, Any]]:
+    """List all sources with saved state."""
+    manager = get_state_manager()
+    return manager.list_sources()
+
+
+@router.post("/state/sources")
+async def create_source_state(request: CreateStateRequest) -> Dict[str, Any]:
+    """Create a new state for a source connector."""
+    manager = get_state_manager()
+    state = manager.create_state(
+        source_name=request.source_name,
+        source_id=request.source_id,
+        streams=request.streams if request.streams else None,
+        global_state=request.global_state if request.global_state else None
+    )
+    return {
+        "status": "created",
+        "source_id": state.source_id,
+        "source_name": state.source_name,
+        "stream_count": len(state.streams),
+        "message": f"State created for {request.source_name}"
+    }
+
+
+@router.get("/state/sources/{source_id}")
+async def get_source_state(source_id: str) -> Dict[str, Any]:
+    """Get complete state for a source."""
+    manager = get_state_manager()
+    state = manager.get_state(source_id)
+    if not state:
+        raise HTTPException(status_code=404, detail=f"State not found for source {source_id}")
+    return state.to_dict()
+
+
+@router.get("/state/sources/{source_id}/summary")
+async def get_sync_summary(source_id: str) -> Dict[str, Any]:
+    """Get sync summary for a source."""
+    manager = get_state_manager()
+    summary = manager.get_sync_summary(source_id)
+    if not summary:
+        raise HTTPException(status_code=404, detail=f"State not found for source {source_id}")
+    return summary
+
+
+@router.put("/state/sources/{source_id}/streams")
+async def update_stream_state(
+    source_id: str,
+    request: UpdateStreamStateRequest
+) -> Dict[str, Any]:
+    """Update state for a specific stream after sync."""
+    manager = get_state_manager()
+    stream_state = manager.update_stream_state(
+        source_id=source_id,
+        stream_name=request.stream_name,
+        cursor_field=request.cursor_field,
+        cursor_value=request.cursor_value,
+        sync_mode=request.sync_mode,
+        records_synced=request.records_synced,
+        metadata=request.metadata if request.metadata else None
+    )
+    if not stream_state:
+        raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
+    return {
+        "status": "updated",
+        "source_id": source_id,
+        "stream": stream_state.to_dict()
+    }
+
+
+@router.get("/state/sources/{source_id}/streams/{stream_name}/cursor")
+async def get_cursor_value(source_id: str, stream_name: str) -> Dict[str, Any]:
+    """Get current cursor value for incremental sync."""
+    manager = get_state_manager()
+    cursor_value = manager.get_cursor_value(source_id, stream_name)
+    return {
+        "source_id": source_id,
+        "stream_name": stream_name,
+        "cursor_value": cursor_value,
+        "has_cursor": cursor_value is not None
+    }
+
+
+@router.post("/state/sources/{source_id}/streams/{stream_name}/reset")
+async def reset_stream_state(source_id: str, stream_name: str) -> Dict[str, Any]:
+    """Reset state for a stream (force full refresh on next sync)."""
+    manager = get_state_manager()
+    success = manager.reset_stream_state(source_id, stream_name)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Source or stream not found")
+    return {
+        "status": "reset",
+        "source_id": source_id,
+        "stream_name": stream_name,
+        "message": f"State reset for stream {stream_name}"
+    }
+
+
+@router.post("/state/sources/{source_id}/reset")
+async def reset_source_state(source_id: str) -> Dict[str, Any]:
+    """Reset all state for a source (force full refresh on all streams)."""
+    manager = get_state_manager()
+    success = manager.reset_source_state(source_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
+    return {
+        "status": "reset",
+        "source_id": source_id,
+        "message": "All stream states reset"
+    }
+
+
+@router.delete("/state/sources/{source_id}")
+async def delete_source_state(source_id: str) -> Dict[str, Any]:
+    """Delete all state for a source."""
+    manager = get_state_manager()
+    success = manager.delete_state(source_id)
+    if not success:
+        raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
+    return {
+        "status": "deleted",
+        "source_id": source_id,
+        "message": "State deleted"
+    }
+
+
+@router.get("/state/sources/{source_id}/export")
+async def export_state(source_id: str) -> Dict[str, Any]:
+    """Export complete state for backup/migration."""
+    manager = get_state_manager()
+    state_data = manager.export_state(source_id)
+    if not state_data:
+        raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
+    return {
+        "status": "exported",
+        "source_id": source_id,
+        "state": state_data
+    }
+
+
+@router.post("/state/import")
+async def import_state(state_data: Dict[str, Any]) -> Dict[str, Any]:
+    """Import state from backup/migration."""
+    manager = get_state_manager()
+    state = manager.import_state(state_data)
+    return {
+        "status": "imported",
+        "source_id": state.source_id,
+        "source_name": state.source_name,
+        "stream_count": len(state.streams),
+        "message": "State imported successfully"
+    }
