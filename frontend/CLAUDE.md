@@ -1,213 +1,300 @@
-# Seven Ultimate Productivity System - Claude Code Configuration
+# Atlas Dashboard Frontend - CLAUDE.md
 
-## 🎯 System Overview
-
-This repository implements a comprehensive productivity system with:
-- **3 specialized subagents** for different tasks (conversation-searcher, context-enhancer, link-generator)
-- **25M+ word conversation database** with full-text search
-- **Automatic GitHub issue enhancement** with conversation context
-- **Simple CRM pipeline** using GitHub Projects
-- **Action-oriented responses** with direct links and follow-ups
-
-## 🤖 Subagent Integration
-
-### **When to Use Subagents**
-
-**Always use subagents for these tasks:**
-- **Research/Search**: Use `conversation-searcher` subagent for finding related discussions
-- **Context Enhancement**: Use `context-enhancer` for adding conversation context to issues
-- **Response Enhancement**: Use `link-generator` for creating action links and follow-ups
-
-### **Subagent Usage Patterns**
-
-```markdown
-# For searching past conversations
-@conversation-searcher find discussions about "JWT authentication"
-
-# For enhancing GitHub issues with context  
-@context-enhancer add context to this issue about user onboarding
-
-# For creating actionable responses
-@link-generator enhance this task completion with action links
-```
-
-## 📋 Response Enhancement Standards
-
-### **Task Completion Format**
-
-When completing any task, **ALWAYS** follow this enhanced format:
-
-```markdown
-## ✅ [Task Description] - Completed Successfully!
-
-### 🔗 **Quick Actions**
-- **[📖 View [filename]](./path/to/file)** - Review the complete result
-- **[✏️ Edit [filename]](https://github.com/Arnarsson/Seven/edit/main/path/to/file)** - Make changes
-- **[📋 Copy Content](javascript:navigator.clipboard.writeText('content'))** - Copy to clipboard
-
-### 📧 **Communication** (when applicable)
-- **[📤 Send Email](mailto:contact@email.com?subject=Subject&body=Pre-filled)** - Ready to send
-- **[💼 Connect on LinkedIn](https://linkedin.com/in/profile)** - Professional connection
-- **[📅 Schedule Meeting](https://calendly.com/link)** - Set up call
-
-### 📋 **Follow-up Tasks**
-- **[⏰ Day 3 Check-in](./issues/new?title=Check%20on%20[task]&labels=reminder)** - Gentle reminder
-- **[📞 Week 1 Call](./issues/new?title=Follow%20up%20call&labels=call)** - Schedule follow-up
-- **[📝 Next Steps](./issues/new?title=Next%20steps%20for%20[task]&labels=planning)** - Continue work
-
-### 🧠 **Related Context** (when available)
-Use @conversation-searcher to find and include relevant past discussions
-
-### 📊 **Task Metrics**
-- **Completion Time**: [X minutes/hours]
-- **Files Created**: [number and list]
-- **Next Milestone**: [specific next step]
-- **Success Probability**: [estimated %]
-```
-
-## 🗂️ File Organization Standards
-
-### **Naming Conventions**
-- **Emails**: `{contact-name}-{purpose}-email.md`
-- **Proposals**: `{company}-{service}-proposal.md`  
-- **Meeting Notes**: `{date}-{contact}-meeting.md`
-- **Documentation**: `{topic}-{type}.md`
-
-### **File Locations**
-- **Conversations/Communications**: Root directory or `communications/`
-- **Documentation**: `docs/` or root directory
-- **Scripts and Tools**: `scripts/`
-- **Templates**: `templates/` (create if needed)
-
-## 👤 Contact Management Integration
-
-### **When People/Companies Are Mentioned**
-
-**Automatic Actions:**
-1. **Extract contact details** (name, company, email, potential deal value)
-2. **Search conversation history** using @conversation-searcher
-3. **Create contact tracking issue** if new contact:
-   ```markdown
-   [👤 Track Contact](./issues/new?title=Contact:%20[Name]%20at%20[Company]&template=contact.md&labels=contact,pipeline)
-   ```
-
-### **Contact Issue Template**
-```markdown
-## Contact: [Name] at [Company]
-
-**Status**: Cold/Warm/Proposal/Won/Lost
-**Deal Value**: [Amount] DKK (estimated)
-**Email**: [email if known]
-**LinkedIn**: [profile if found]
-
-### Background
-- How we connected: [context]
-- Their interest: [what they need]
-- Our solution: [what we can offer]
-
-### Next Actions
-- [ ] Send introduction email
-- [ ] Research their company needs
-- [ ] Prepare customized proposal
-- [ ] Schedule discovery call
-
-### Related Conversations
-[Auto-populated by context-enhancer subagent]
-```
-
-## 🔍 Search Integration
-
-### **Before Major Tasks**
-
-**Always search for related context first:**
-1. Use @conversation-searcher to find previous discussions
-2. Include relevant insights in your response
-3. Avoid duplicating previous work
-4. Reference past decisions and learnings
-
-### **Search Query Examples**
-- Technical topics: `@conversation-searcher "React authentication patterns"`
-- Business topics: `@conversation-searcher "SaaS pricing strategy"`
-- People: `@conversation-searcher "John from TechCorp"`
-- Decisions: `@conversation-searcher "why we chose PostgreSQL"`
-
-## 📊 GitHub Projects Integration
-
-### **Issue Labels for Pipeline Management**
-- `contact` - New lead or business contact
-- `proposal` - Active proposal stage
-- `follow-up` - Needs follow-up action
-- `won` - Successfully closed deal
-- `lost` - Lost opportunity
-- `reminder` - Scheduled reminder task
-- `call` - Phone call needed
-- `email` - Email action required
-
-### **Pipeline Stages**
-1. **Cold** - Initial contact, research phase
-2. **Warm** - Active discussion, building relationship
-3. **Proposal** - Formal proposal sent
-4. **Won** - Deal closed successfully
-5. **Lost** - Opportunity lost, learn from it
-
-## ⚡ Automation Features
-
-### **GitHub Actions Integration**
-- **New issues** automatically get context from conversation history
-- **Only human-created issues** are enhanced (not bot issues)
-- **Professional formatting** with clear attribution
-
-### **Conversation Database**
-- **25M+ words** of searchable conversation history
-- **ChatGPT + Claude** conversations included
-- **Full-text search** with relevance ranking
-- **Auto-imported** from exports
-
-## 🎯 Success Metrics
-
-### **Response Quality Indicators**
-- ✅ Direct action links included
-- ✅ Relevant conversation context provided
-- ✅ Clear next steps defined
-- ✅ Contact information extracted and tracked
-- ✅ Follow-up automation created
-
-### **Productivity Measurements**
-- **Context Discovery**: Time saved finding previous discussions
-- **Action Completion**: Click-through rate on action links
-- **Follow-up Success**: Completion rate of automated reminders
-- **Deal Pipeline**: Conversion rate from cold to won
-
-## 🔧 Technical Notes
-
-### **Database Structure**
-- SQLite database at `data/seven.db`
-- Full-text search enabled
-- Contact and task tracking tables
-- GitHub issues sync capability
-
-### **Subagent Architecture**
-- Independent context windows for each agent
-- Specialized prompts for different domains
-- Automatic delegation based on task type
-- Coordinated results integration
-
-## 💡 Best Practices
-
-### **For Every Task**
-1. **Search first** - Check conversation history before starting
-2. **Document decisions** - Explain reasoning for future reference
-3. **Create actions** - Always provide next steps and follow-ups
-4. **Track contacts** - Extract and manage relationship information
-5. **Link everything** - Connect related issues, conversations, and tasks
-
-### **Quality Standards**
-- **Accuracy**: All links must work correctly
-- **Completeness**: Include all relevant context and actions
-- **Professionalism**: Maintain business-appropriate tone
-- **Efficiency**: Minimize clicks needed for common actions
-- **Intelligence**: Learn from past conversations and decisions
+**Last Updated**: January 12, 2026
+**Status**: UI Redesign Complete - Linear/Vercel Aesthetic
+**Tech Stack**: React 18 + TypeScript + Vite + Tailwind CSS v4 + shadcn/ui
 
 ---
 
-**Remember**: This system transforms GitHub into a comprehensive productivity platform. Every interaction should leverage the conversation database, create actionable outcomes, and build toward long-term relationship and project success.
+## Project Overview
+
+Modern React dashboard for the Atlas Data Pipeline Platform. Features 9 pages for data pipeline management, quality monitoring, GDPR compliance, and feature store management.
+
+### Quick Start
+
+```bash
+cd /Users/sven/Desktop/MCP/.worktrees/atlas-dashboard/frontend
+npm install
+npm run dev
+# Dashboard: http://localhost:5173
+```
+
+**Backend Required**: Start the API server first:
+```bash
+cd /Users/sven/Desktop/MCP/.worktrees/atlas-api
+python3 simple_main.py
+# API: http://localhost:8000
+```
+
+---
+
+## Current Design System (January 2026)
+
+### Linear/Vercel Aesthetic
+- **Minimal, neutral color palette** - No colorful gradients
+- **CSS Variables** for theming with HSL values
+- **Dark mode support** via `.dark` class on `<html>`
+- **shadcn/ui components** (Card, Button) with Radix primitives
+
+### Color Tokens (index.css)
+```css
+:root {
+  --background: 0 0% 100%;
+  --foreground: 0 0% 3.9%;
+  --card: 0 0% 100%;
+  --muted: 0 0% 96.1%;
+  --muted-foreground: 0 0% 45.1%;
+  --border: 0 0% 89.8%;
+  --input: 0 0% 89.8%;
+  --ring: 0 0% 3.9%;
+  --secondary: 0 0% 96.1%;
+}
+
+.dark {
+  --background: 0 0% 3.9%;
+  --foreground: 0 0% 98%;
+  /* ... dark mode values */
+}
+```
+
+### Usage Pattern (Tailwind v4)
+```tsx
+// DO: Use CSS variable syntax
+className="text-[hsl(var(--foreground))]"
+className="bg-[hsl(var(--secondary))]"
+className="border-[hsl(var(--border))]"
+
+// DON'T: Use semantic color classes (breaks in Tailwind v4)
+className="text-foreground"  // Error!
+className="border-border"    // Error!
+```
+
+### Semantic Colors (Reserved)
+- **Green** (`bg-green-500/10 text-green-600`): Success, completed, validated
+- **Red** (`bg-red-500/10 text-red-600`): Error, failed, delete actions
+- **Neutral**: Everything else uses CSS variables
+
+---
+
+## File Structure
+
+```
+frontend/
+├── src/
+│   ├── api/
+│   │   └── client.ts          # API client with React Query integration
+│   ├── components/
+│   │   ├── ui/
+│   │   │   ├── button.tsx     # shadcn Button component
+│   │   │   └── card.tsx       # shadcn Card component
+│   │   ├── Layout/
+│   │   │   ├── Layout.tsx     # Main layout with sidebar
+│   │   │   ├── Header.tsx     # Top header with dark mode toggle
+│   │   │   └── Sidebar.tsx    # Navigation sidebar
+│   │   ├── Connectors/        # Connector wizard components
+│   │   ├── Quality/           # Quality dashboard components
+│   │   ├── PII/               # PII analysis components
+│   │   ├── Upload/            # CSV dropzone
+│   │   ├── Lineage/           # Lineage graph visualization
+│   │   └── ErrorBoundary.tsx  # Error boundary wrapper
+│   ├── pages/
+│   │   ├── Dashboard.tsx      # Main dashboard with stats
+│   │   ├── Upload.tsx         # CSV upload with quality/PII viz
+│   │   ├── Connectors.tsx     # Connector management
+│   │   ├── QualityReports.tsx # Quality reports list
+│   │   ├── PIIAnalysis.tsx    # PII detection dashboard
+│   │   ├── DataCatalog.tsx    # Dataset browser
+│   │   ├── FeatureStore.tsx   # ML feature management
+│   │   ├── GDPR.tsx           # GDPR compliance workflows
+│   │   └── Lineage.tsx        # Data lineage visualization
+│   ├── lib/
+│   │   └── utils.ts           # cn() utility for class merging
+│   ├── types/
+│   │   └── index.ts           # TypeScript interfaces
+│   ├── index.css              # Global styles + CSS variables
+│   ├── App.tsx                # Router setup
+│   └── main.tsx               # Entry point
+├── tests/
+│   └── e2e/                   # Playwright E2E tests (12 spec files)
+├── package.json
+├── vite.config.ts
+├── tailwind.config.js
+└── tsconfig.json
+```
+
+---
+
+## Key Components
+
+### shadcn/ui Components
+
+**Button** (`src/components/ui/button.tsx`):
+```tsx
+import { Button } from '@/components/ui/button';
+
+<Button>Default</Button>
+<Button variant="outline">Outline</Button>
+<Button variant="ghost">Ghost</Button>
+<Button size="sm">Small</Button>
+```
+
+**Card** (`src/components/ui/card.tsx`):
+```tsx
+import { Card, CardContent } from '@/components/ui/card';
+
+<Card>
+  <CardContent className="p-6">
+    Content here
+  </CardContent>
+</Card>
+```
+
+### Layout Components
+
+**Dark Mode Toggle** (in Header.tsx):
+```tsx
+const [isDark, setIsDark] = useState(false);
+
+useEffect(() => {
+  document.documentElement.classList.toggle('dark', isDark);
+}, [isDark]);
+```
+
+---
+
+## API Integration
+
+### React Query Setup
+```tsx
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { searchDatasets, uploadCSV } from '@/api/client';
+
+// Fetching data
+const { data, isLoading } = useQuery({
+  queryKey: ['datasets', searchQuery],
+  queryFn: () => searchDatasets(searchQuery),
+});
+
+// Mutations
+const mutation = useMutation({
+  mutationFn: uploadCSV,
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['datasets'] });
+    toast.success('Upload complete');
+  },
+});
+```
+
+### API Endpoints Used
+- `GET /dashboard/stats` - Dashboard overview
+- `POST /pipeline/run` - Upload CSV
+- `GET /quality/metrics/{run_id}` - Quality scores
+- `GET /quality/pii-report/{run_id}` - PII detections
+- `GET /connectors/` - List connectors
+- `GET /catalog/datasets` - Search datasets
+- `GET /features/groups` - Feature groups
+- `GET /gdpr/requests` - GDPR requests
+- `GET /lineage/dataset/{name}` - Lineage graph
+
+---
+
+## Testing
+
+### Playwright E2E Tests
+```bash
+# Run all tests
+npm run test:e2e
+
+# Interactive UI mode
+npm run test:e2e:ui
+
+# View report
+npm run test:e2e:report
+```
+
+### Test Files
+- `01-navigation.spec.ts` - Page navigation
+- `02-csv-upload.spec.ts` - File upload flow
+- `03-connectors.spec.ts` - Connector wizard
+- `04-quality-reports.spec.ts` - Quality filtering
+- `05-gdpr.spec.ts` - GDPR workflows
+- `06-catalog.spec.ts` - Dataset search
+- `07-features.spec.ts` - Feature store
+- `08-user-journey.spec.ts` - Full user flows
+- `09-performance.spec.ts` - Load time tests
+- `10-visual.spec.ts` - Visual regression
+- `11-api-contracts.spec.ts` - API structure validation
+- `12-error-handling.spec.ts` - Error scenarios
+
+---
+
+## Development Guidelines
+
+### Adding New Pages
+1. Create page component in `src/pages/`
+2. Add route in `src/App.tsx`
+3. Add navigation link in `src/components/Layout/Sidebar.tsx`
+4. Use existing patterns for data fetching (React Query)
+5. Use CSS variable syntax for all colors
+
+### Style Patterns
+
+**Form Inputs**:
+```tsx
+<input
+  className="w-full px-3 py-2 border border-[hsl(var(--input))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))] placeholder:text-[hsl(var(--muted-foreground))] focus:outline-none focus:ring-2 focus:ring-[hsl(var(--ring))]"
+/>
+```
+
+**Modals**:
+```tsx
+<div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+  <div className="bg-[hsl(var(--card))] rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto border border-[hsl(var(--border))]">
+```
+
+**Status Badges**:
+```tsx
+// Success
+<span className="px-2 py-1 text-xs font-medium rounded bg-green-500/10 text-green-600">
+  Completed
+</span>
+
+// Error
+<span className="px-2 py-1 text-xs font-medium rounded bg-red-500/10 text-red-600">
+  Failed
+</span>
+
+// Neutral
+<span className="px-2 py-1 text-xs font-medium rounded bg-[hsl(var(--secondary))] text-[hsl(var(--foreground))]">
+  Pending
+</span>
+```
+
+---
+
+## Known Issues & Notes
+
+### Tailwind CSS v4 Compatibility
+- Use `@import "tailwindcss"` in index.css (not `@tailwind` directives)
+- Semantic color classes (`text-foreground`, `border-border`) don't work
+- Must use arbitrary value syntax: `text-[hsl(var(--foreground))]`
+
+### Browser Caching
+After CSS changes, do a hard refresh:
+- **Mac**: Cmd + Shift + R
+- **Windows/Linux**: Ctrl + Shift + R
+
+### Port Numbers
+- Frontend: 5173 (default Vite port)
+- Backend API: 8000
+
+---
+
+## Recent Changes (January 2026)
+
+### UI Redesign to Linear/Vercel Aesthetic
+- Removed all colorful gradients (purple, blue, orange)
+- Implemented CSS variable theming
+- Added dark mode toggle in header
+- Updated all 9 pages with new design system
+- Created shadcn/ui Button and Card components

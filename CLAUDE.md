@@ -1,34 +1,37 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
-**Last Updated**: January 11, 2026, 23:15
-**Status**: 📋 **PHASE 5 PLANNED** - Airbyte Connector Integration
+**Last Updated**: January 12, 2026
+**Status**: UI Redesign Complete | Phase 5 Planned
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
-**Session**: Phase 1-4 Complete | Phase 5 Ready to Start
-**Achievement**: Enterprise-Ready Data Pipeline + Airbyte Integration Plan
 
 ---
 
 ## 🎯 Current Status
 
-### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 1-4) + Phase 5 Planned**
+### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 1-4)**
 
-**Progress**: 100% of Atlas Data Pipeline Standard ✅ | Phase 5: Airbyte Integration Planned
+**Progress**: 100% of Atlas Data Pipeline Standard ✅
 **Code**: ~50,000+ lines (Backend + Frontend + Database + Tests + Docs)
 **Tests**: 206+ total (82 backend ✅ + 124 frontend E2E)
-**Repository**: https://github.com/Arnarsson/atlas-pipeline-v1
 
-**Phase Breakdown**:
-- Phase 1-2: Core Pipeline + Connectors (100% complete)
-- Phase 3: Production Hardening (100% complete)
-- Phase 4: Advanced Features (100% complete)
-- **Phase 5: Airbyte Connector Integration (📋 PLANNED - 4 weeks)**
+**Recent Updates (January 2026)**:
+- UI Redesign: Linear/Vercel aesthetic with shadcn/ui
+- Dark mode support with CSS variables
+- Codebase cleanup and consolidation
 
-**Directory Structure**:
+**Directory Structure** (Cleaned):
 ```
-atlas-pipeline-v1/
-├── backend/          # FastAPI + Python pipeline
+atlas-dashboard/
+├── backend/          # FastAPI + Python pipeline (in atlas-api worktree)
 ├── frontend/         # React + TypeScript dashboard
-└── docs/            # Documentation
+│   ├── src/          # Source code (9 pages, shadcn components)
+│   ├── tests/e2e/    # Playwright tests (20 spec files)
+│   └── CLAUDE.md     # Frontend-specific docs
+├── docs/             # Documentation
+├── monitoring/       # Prometheus + Grafana configs
+├── scripts/          # Build and deploy scripts
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
@@ -749,12 +752,14 @@ CSV/DB/API → Explore → Chart → Navigate → Output
 - `database/migrations/` - 7 SQL migrations
 - `tests/` - 82 backend tests
 
-### **Frontend** (`/Users/sven/Desktop/MCP/.worktrees/atlas-dashboard/`)
-- `src/pages/` - 9 pages ⭐
-- `src/components/` - 25+ components
+### **Frontend** (`/Users/sven/Desktop/MCP/.worktrees/atlas-dashboard/frontend/`)
+- `src/pages/` - 9 pages (Linear/Vercel aesthetic) ⭐
+- `src/components/ui/` - shadcn Button, Card components
+- `src/components/Layout/` - Header (dark mode), Sidebar
 - `src/api/client.ts` - API integration
-- `tests/e2e/` - 122 Playwright tests
-- `package.json` - Dependencies
+- `src/index.css` - CSS variables for theming
+- `tests/e2e/` - 20 Playwright E2E test specs
+- `CLAUDE.md` - Frontend-specific documentation ⭐
 
 ### **Documentation** (`/Users/sven/Desktop/MCP/DataPipeline/`)
 - `README.md` - Project overview ⭐
@@ -891,6 +896,74 @@ npm install  # Frontend
 ---
 
 ## 🔧 Recent Updates
+
+### **UI Redesign & Codebase Cleanup** (January 12, 2026)
+✅ **LINEAR/VERCEL AESTHETIC + PROJECT CONSOLIDATION**
+
+**UI Redesign:**
+- Redesigned all 9 pages to Linear/Vercel aesthetic
+- Removed all colorful gradients (purple, blue, orange)
+- Implemented CSS variable theming with HSL values
+- Added dark mode support (toggle in header)
+- Created shadcn/ui Button and Card components
+- Tailwind CSS v4 compatible (arbitrary value syntax)
+
+**Design System:**
+```css
+/* CSS Variables (index.css) */
+--background: 0 0% 100%;
+--foreground: 0 0% 3.9%;
+--muted-foreground: 0 0% 45.1%;
+--border: 0 0% 89.8%;
+--secondary: 0 0% 96.1%;
+
+/* Usage in components */
+className="text-[hsl(var(--foreground))]"
+className="bg-[hsl(var(--secondary))]"
+className="border-[hsl(var(--border))]"
+```
+
+**Semantic Colors (reserved for status):**
+- Green: `bg-green-500/10 text-green-600` (success, completed)
+- Red: `bg-red-500/10 text-red-600` (error, failed, delete)
+- Neutral: Everything else uses CSS variables
+
+**Codebase Cleanup:**
+- Removed duplicate `/src` at root level
+- Removed 15+ duplicate markdown files
+- Removed root-level frontend configs
+- Removed duplicate `/tests` directory
+- Consolidated to single `frontend/` directory
+- Fixed broken Claude hooks
+
+**New Clean Structure:**
+```
+atlas-dashboard/
+├── backend/          # → atlas-api worktree
+├── frontend/         # Main frontend code
+│   ├── src/
+│   │   ├── components/ui/   # shadcn Button, Card
+│   │   ├── pages/           # 9 pages (redesigned)
+│   │   └── index.css        # CSS variables
+│   ├── tests/e2e/           # Playwright tests
+│   └── CLAUDE.md            # Frontend-specific docs
+├── docs/
+├── monitoring/
+├── scripts/
+├── docker-compose.yml
+└── README.md
+```
+
+**Files Updated:**
+- All 9 pages in `frontend/src/pages/`
+- `frontend/src/index.css` - CSS variables
+- `frontend/src/components/ui/button.tsx` - shadcn Button
+- `frontend/src/components/ui/card.tsx` - shadcn Card
+- `frontend/src/components/Layout/Header.tsx` - Dark mode toggle
+- `frontend/src/components/Layout/Sidebar.tsx` - Neutral styling
+- `frontend/CLAUDE.md` - Complete frontend docs
+
+---
 
 ### **Phase 3: Production Hardening Complete** (Commits: ed9c30d, 2dfd0ff, 01ea13a, Jan 11, 2026)
 ✅ **ENTERPRISE-READY: Monitoring, CI/CD, Backups**
@@ -1207,20 +1280,15 @@ accounts = await connector.get_data(table="Account")
 - Removed deprecated `np.bool8` reference (removed in numpy 2.0)
 - Pipeline now completes successfully with numpy 2.4.1
 
-### **UI/UX Enhancements** (Commits: daa1405, baa279f)
-✅ **Vibrant Color Scheme**
-- **Sidebar**: Dark indigo/blue gradient with yellow/orange active states
-- **Header**: Gradient background with green "ONLINE" status indicator  
-- **Dashboard**: Purple gradient header, high-contrast stat cards
-- **Background**: Subtle gray→blue→indigo gradient
-- **Typography**: Bold, dark text with improved hierarchy
+### **UI/UX Enhancements** (Jan 10-12, 2026)
+~~✅ **Vibrant Color Scheme** (Jan 10) - REPLACED~~
 
-✅ **Visual Improvements**
-- Large colorful icons (8 distinct colors)
-- Hover animations (scale + border highlights)
-- Thick borders for better visual separation
-- Enhanced shadows for depth
-- Fixed Tailwind CSS v4 compatibility issues
+✅ **Linear/Vercel Redesign** (Jan 12) - CURRENT
+- Minimal, neutral color palette (grays only)
+- CSS variable theming with dark mode support
+- shadcn/ui components (Button, Card)
+- Tailwind CSS v4 arbitrary value syntax
+- See "UI Redesign & Codebase Cleanup" section above for details
 
 ### **Known Issues** (Updated Jan 11, 2026)
 ✅ **FIXED**: Frontend console errors - API contract mismatch resolved (commit ea47ac3)

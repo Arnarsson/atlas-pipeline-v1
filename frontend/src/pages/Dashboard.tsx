@@ -10,17 +10,21 @@ import {
   CheckCircle,
   AlertTriangle,
   FileCheck,
+  Upload,
+  Search,
+  Settings,
 } from 'lucide-react';
 import { getDashboardStats } from '@/api/client';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 export default function Dashboard() {
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: getDashboardStats,
-    refetchInterval: 30000, // Refresh every 30 seconds
-    retry: false, // Don't retry if endpoint doesn't exist
+    refetchInterval: 30000,
+    retry: false,
     meta: {
-      // Silently handle errors - dashboard will show zeros
       errorMessage: 'Failed to load dashboard stats',
     },
   });
@@ -28,7 +32,7 @@ export default function Dashboard() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600" />
+        <div className="animate-spin rounded-full h-8 w-8 border-2 border-[hsl(var(--foreground))] border-t-transparent" />
       </div>
     );
   }
@@ -67,299 +71,199 @@ export default function Dashboard() {
   };
 
   const statCards = [
-    {
-      name: 'Total Pipeline Runs',
-      value: stats?.total_runs || 0,
-      icon: Activity,
-      color: 'bg-blue-500',
-      subtitle: 'All time',
-      link: '/reports',
-    },
-    {
-      name: 'Avg Quality Score',
-      value: `${Math.round((stats?.avg_quality_score || 0) * 100)}%`,
-      icon: TrendingUp,
-      color: 'bg-green-500',
-      subtitle: 'Last 30 days',
-      link: '/reports',
-    },
-    {
-      name: 'PII Detections',
-      value: stats?.total_pii_detections || 0,
-      icon: Shield,
-      color: 'bg-purple-500',
-      subtitle: 'Total fields',
-      link: '/pii',
-    },
-    {
-      name: 'Active Connectors',
-      value: stats?.active_connectors || 0,
-      icon: Database,
-      color: 'bg-orange-500',
-      subtitle: 'Enabled',
-      link: '/connectors',
-    },
-    {
-      name: 'Feature Groups',
-      value: stats?.total_feature_groups || 0,
-      icon: Database,
-      color: 'bg-indigo-500',
-      subtitle: 'Registered',
-      link: '/features',
-    },
-    {
-      name: 'GDPR Requests',
-      value: stats?.pending_gdpr_requests || 0,
-      icon: Shield,
-      color: 'bg-red-500',
-      subtitle: 'Pending',
-      link: '/gdpr',
-    },
-    {
-      name: 'Catalog Datasets',
-      value: stats?.catalog_datasets || 0,
-      icon: Database,
-      color: 'bg-teal-500',
-      subtitle: 'In catalog',
-      link: '/catalog',
-    },
-    {
-      name: 'Avg Lineage Depth',
-      value: `${stats?.avg_lineage_depth || 0} levels`,
-      icon: Activity,
-      color: 'bg-cyan-500',
-      subtitle: 'Transformations',
-      link: '/lineage',
-    },
+    { name: 'Pipeline Runs', value: stats?.total_runs || 0, icon: Activity, link: '/reports' },
+    { name: 'Quality Score', value: `${Math.round((stats?.avg_quality_score || 0) * 100)}%`, icon: TrendingUp, link: '/reports' },
+    { name: 'PII Detections', value: stats?.total_pii_detections || 0, icon: Shield, link: '/pii' },
+    { name: 'Connectors', value: stats?.active_connectors || 0, icon: Database, link: '/connectors' },
   ];
 
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-8 shadow-2xl border-4 border-white">
-        <h1 className="text-4xl font-extrabold text-white drop-shadow-lg">Dashboard</h1>
-        <p className="mt-3 text-lg text-indigo-100 font-semibold">
-          Welcome to Atlas Data Pipeline Platform - Your Data Command Center
+      <div>
+        <h1 className="text-2xl font-semibold text-[hsl(var(--foreground))]">Dashboard</h1>
+        <p className="mt-1 text-sm text-[hsl(var(--muted-foreground))]">
+          Monitor your data pipeline and compliance status
         </p>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {statCards.map((stat) => (
-          <div
-            key={stat.name}
-            className="bg-white overflow-hidden shadow-2xl rounded-2xl hover:shadow-3xl transition-all hover:scale-105 border-4 border-gray-200 hover:border-indigo-400"
-          >
-            <div className="p-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0">
-                  <div className={`p-4 rounded-xl ${stat.color} shadow-lg`}>
-                    <stat.icon className="h-8 w-8 text-white" />
+          <Link key={stat.name} to={stat.link}>
+            <Card className="hover:bg-[hsl(var(--secondary)/0.5)] transition-colors cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-[hsl(var(--muted-foreground))]">{stat.name}</p>
+                    <p className="mt-1 text-2xl font-semibold text-[hsl(var(--foreground))]">{stat.value}</p>
                   </div>
+                  <stat.icon className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
                 </div>
-                <div className="ml-5 w-0 flex-1">
-                  <dl>
-                    <dt className="text-sm font-bold text-gray-700 truncate uppercase tracking-wide">
-                      {stat.name}
-                    </dt>
-                    <dd>
-                      <div className="text-3xl font-extrabold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-                        {stat.value}
-                      </div>
-                      <div className="mt-1 text-xs font-semibold text-gray-600 uppercase">
-                        {stat.subtitle}
-                      </div>
-                    </dd>
-                  </dl>
-                </div>
-              </div>
-            </div>
-          </div>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
 
       {/* Recent Runs */}
-      <div className="bg-white shadow-md rounded-lg">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-gray-900">Recent Pipeline Runs</h2>
-          <Link
-            to="/reports"
-            className="text-sm font-medium text-primary-600 hover:text-primary-500 flex items-center gap-1"
-          >
-            View all
-            <ArrowRight className="h-4 w-4" />
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle className="text-base font-medium">Recent Pipeline Runs</CardTitle>
+            <CardDescription>Latest data processing activity</CardDescription>
+          </div>
+          <Link to="/reports">
+            <Button variant="ghost" size="sm">
+              View all
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Button>
           </Link>
-        </div>
-        <div className="divide-y divide-gray-200">
-          {stats?.recent_runs && stats.recent_runs.length > 0 ? (
-            stats.recent_runs.map((run) => (
-              <div
-                key={run.run_id}
-                className="px-6 py-4 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
+        </CardHeader>
+        <CardContent>
+          <div className="divide-y divide-[hsl(var(--border))]">
+            {stats?.recent_runs && stats.recent_runs.length > 0 ? (
+              stats.recent_runs.slice(0, 5).map((run) => (
+                <div key={run.run_id} className="py-3 first:pt-0 last:pb-0">
+                  <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <h3 className="text-sm font-medium text-gray-900">
-                        {run.dataset_name}
-                      </h3>
-                      <span
-                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          run.status === 'completed'
-                            ? 'bg-green-100 text-green-800'
-                            : run.status === 'failed'
-                            ? 'bg-red-100 text-red-800'
-                            : run.status === 'running'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {run.status}
-                      </span>
+                      <div className={`h-2 w-2 rounded-full ${
+                        run.status === 'completed' ? 'bg-green-500' :
+                        run.status === 'failed' ? 'bg-red-500' :
+                        run.status === 'running' ? 'bg-blue-500' : 'bg-gray-400'
+                      }`} />
+                      <div>
+                        <p className="text-sm font-medium text-[hsl(var(--foreground))]">{run.dataset_name}</p>
+                        <p className="text-xs text-[hsl(var(--muted-foreground))]">
+                          {formatDate((run as any).created_at)}
+                        </p>
+                      </div>
                     </div>
-                    <div className="mt-1 flex items-center gap-4 text-sm text-gray-500">
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-4 w-4" />
-                        {formatDate((run as any).created_at)}
-                      </span>
+                    <div className="flex items-center gap-4">
                       {run.quality_score !== undefined && (
-                        <span className="font-medium">
-                          Quality: {Math.round(run.quality_score * 100)}%
+                        <span className="text-xs text-[hsl(var(--muted-foreground))]">
+                          {Math.round(run.quality_score * 100)}% quality
                         </span>
                       )}
-                      {run.pii_detections !== undefined && run.pii_detections > 0 && (
-                        <span className="text-purple-600 font-medium">
-                          {run.pii_detections} PII detections
-                        </span>
-                      )}
+                      <Link
+                        to={`/reports/${run.run_id}`}
+                        className="text-xs font-medium text-[hsl(var(--foreground))] hover:underline"
+                      >
+                        Details
+                      </Link>
                     </div>
                   </div>
-                  <Link
-                    to={`/reports/${run.run_id}`}
-                    className="ml-4 text-sm font-medium text-primary-600 hover:text-primary-500"
-                  >
-                    View Details
-                  </Link>
                 </div>
-              </div>
-            ))
-          ) : (
-            <div className="px-6 py-12 text-center">
-              <Activity className="mx-auto h-12 w-12 text-gray-400" />
-              <h3 className="mt-2 text-sm font-medium text-gray-900">No recent runs</h3>
-              <p className="mt-1 text-sm text-gray-500">
-                Get started by uploading a CSV file.
-              </p>
-              <div className="mt-6">
-                <Link
-                  to="/upload"
-                  className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700"
-                >
-                  Upload CSV
+              ))
+            ) : (
+              <div className="py-8 text-center">
+                <Activity className="mx-auto h-8 w-8 text-[hsl(var(--muted-foreground))]" />
+                <p className="mt-2 text-sm text-[hsl(var(--muted-foreground))]">No recent runs</p>
+                <Link to="/upload">
+                  <Button variant="outline" size="sm" className="mt-4">
+                    Upload CSV
+                  </Button>
                 </Link>
               </div>
-            </div>
-          )}
-        </div>
-      </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
-      {/* Governance & EU AI Act readiness */}
-      <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-200">
-        <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Governance & EU AI Act</h2>
-            <p className="text-sm text-gray-600">
-              Compliance-first status across data quality, logging, and PII controls
-            </p>
+      {/* Governance & EU AI Act */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-base font-medium">Governance & EU AI Act</CardTitle>
+              <CardDescription>Compliance status across data quality and controls</CardDescription>
+            </div>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[hsl(var(--secondary))] px-2.5 py-1 text-xs font-medium text-[hsl(var(--secondary-foreground))]">
+              <Shield className="h-3 w-3" />
+              Compliant
+            </span>
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold">
-            <Shield className="h-4 w-4" />
-            Governance-first
-          </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 p-6">
-          {readinessItems.map((item) => {
-            const Icon = item.icon;
-            const isReady = item.status === 'Ready';
-            return (
-              <div
-                key={item.name}
-                className="border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-colors"
-              >
-                <div className="flex items-center gap-2 mb-2">
-                  <div className={`p-2 rounded-lg ${isReady ? 'bg-green-50' : 'bg-yellow-50'}`}>
-                    <Icon className={`h-5 w-5 ${isReady ? 'text-green-600' : 'text-yellow-600'}`} />
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {readinessItems.map((item) => {
+              const Icon = item.icon;
+              const isReady = item.status === 'Ready';
+              return (
+                <div
+                  key={item.name}
+                  className="rounded-lg border border-[hsl(var(--border))] p-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <Icon className={`h-4 w-4 ${isReady ? 'text-green-500' : 'text-yellow-500'}`} />
+                    <span className="text-xs font-medium text-[hsl(var(--muted-foreground))]">{item.name}</span>
                   </div>
-                  <div className="text-xs font-semibold uppercase text-gray-600">{item.name}</div>
-                </div>
-                <div className="flex items-center gap-2 text-sm font-semibold">
-                  {isReady ? (
-                    <span className="text-green-700 inline-flex items-center gap-1">
-                      <CheckCircle className="h-4 w-4" />
-                      Ready
+                  <div className="mt-2 flex items-center gap-1.5">
+                    {isReady ? (
+                      <CheckCircle className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <AlertTriangle className="h-3.5 w-3.5 text-yellow-500" />
+                    )}
+                    <span className={`text-sm font-medium ${isReady ? 'text-green-600' : 'text-yellow-600'}`}>
+                      {item.status}
                     </span>
-                  ) : (
-                    <span className="text-yellow-700 inline-flex items-center gap-1">
-                      <AlertTriangle className="h-4 w-4" />
-                      Needs attention
-                    </span>
-                  )}
+                  </div>
+                  <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">{item.description}</p>
                 </div>
-                <p className="mt-2 text-xs text-gray-600">{item.description}</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <Link
-          to="/upload"
-          className="block p-6 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg shadow-md hover:shadow-lg transition-all hover:-translate-y-1"
-        >
-          <div className="text-white">
-            <h3 className="text-lg font-semibold mb-2">Upload CSV</h3>
-            <p className="text-sm text-primary-100">
-              Process new data with quality validation and PII detection
-            </p>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Link to="/upload">
+          <Card className="hover:bg-[hsl(var(--secondary)/0.5)] transition-colors cursor-pointer h-full">
+            <CardContent className="p-6">
+              <Upload className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+              <h3 className="mt-3 text-sm font-medium text-[hsl(var(--foreground))]">Upload CSV</h3>
+              <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Process data with quality validation
+              </p>
+            </CardContent>
+          </Card>
         </Link>
 
-        <Link
-          to="/catalog"
-          className="block p-6 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg shadow-md hover:shadow-lg transition-all hover:-translate-y-1"
-        >
-          <div className="text-white">
-            <h3 className="text-lg font-semibold mb-2">Data Catalog</h3>
-            <p className="text-sm text-teal-100">
-              Browse and search all datasets in the pipeline
-            </p>
-          </div>
+        <Link to="/catalog">
+          <Card className="hover:bg-[hsl(var(--secondary)/0.5)] transition-colors cursor-pointer h-full">
+            <CardContent className="p-6">
+              <Search className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+              <h3 className="mt-3 text-sm font-medium text-[hsl(var(--foreground))]">Data Catalog</h3>
+              <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Browse and search all datasets
+              </p>
+            </CardContent>
+          </Card>
         </Link>
 
-        <Link
-          to="/features"
-          className="block p-6 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-lg shadow-md hover:shadow-lg transition-all hover:-translate-y-1"
-        >
-          <div className="text-white">
-            <h3 className="text-lg font-semibold mb-2">Feature Store</h3>
-            <p className="text-sm text-indigo-100">
-              Manage ML features with versioning and exports
-            </p>
-          </div>
+        <Link to="/features">
+          <Card className="hover:bg-[hsl(var(--secondary)/0.5)] transition-colors cursor-pointer h-full">
+            <CardContent className="p-6">
+              <Database className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+              <h3 className="mt-3 text-sm font-medium text-[hsl(var(--foreground))]">Feature Store</h3>
+              <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Manage ML features and versions
+              </p>
+            </CardContent>
+          </Card>
         </Link>
 
-        <Link
-          to="/gdpr"
-          className="block p-6 bg-gradient-to-br from-red-500 to-red-600 rounded-lg shadow-md hover:shadow-lg transition-all hover:-translate-y-1"
-        >
-          <div className="text-white">
-            <h3 className="text-lg font-semibold mb-2">GDPR Compliance</h3>
-            <p className="text-sm text-red-100">
-              Manage data subject access and deletion requests
-            </p>
-          </div>
+        <Link to="/gdpr">
+          <Card className="hover:bg-[hsl(var(--secondary)/0.5)] transition-colors cursor-pointer h-full">
+            <CardContent className="p-6">
+              <Settings className="h-5 w-5 text-[hsl(var(--muted-foreground))]" />
+              <h3 className="mt-3 text-sm font-medium text-[hsl(var(--foreground))]">GDPR Compliance</h3>
+              <p className="mt-1 text-xs text-[hsl(var(--muted-foreground))]">
+                Manage data subject requests
+              </p>
+            </CardContent>
+          </Card>
         </Link>
       </div>
     </div>

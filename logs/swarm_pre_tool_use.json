@@ -1,0 +1,11 @@
+[
+  {
+    "timestamp": "2026-01-12T15:01:20.256786",
+    "operation": "pre_tool_use",
+    "tool_name": "Bash",
+    "tool_input": {
+      "command": "cd /Users/sven/Desktop/MCP/.worktrees/atlas-api && git status --short app/api/routes/ && git diff --name-only",
+      "description": "Check atlas-api git status for routes"
+    }
+  }
+]
