@@ -1,11 +1,11 @@
 """
-Enhanced Catalog API Routes (Phase 4.1)
-========================================
+Enhanced Catalog API Routes (Phase 4.1 + Phase 6)
+==================================================
 
 API endpoints for advanced catalog features:
 - Smart search with relevance ranking
 - Usage analytics
-- Data profiling
+- Data profiling (Phase 6: now fully functional)
 - Collaboration (comments, ratings, annotations)
 """
 
@@ -25,6 +25,14 @@ from app.catalog.enhanced_catalog import (
     UsageStatistics,
     get_enhanced_catalog,
 )
+
+# Phase 6: Data storage for profiling
+try:
+    from app.storage.data_store import get_data_store, get_pipeline_data
+
+    DATA_STORE_AVAILABLE = True
+except ImportError:
+    DATA_STORE_AVAILABLE = False
 
 logger = logging.getLogger(__name__)
 
@@ -259,32 +267,216 @@ async def profile_dataset(dataset_id: str):
     - Histograms for numerical columns
     - String length statistics
 
-    NOTE: Requires dataset data to be available.
+    Phase 6: Now fully functional with data store integration.
     """
     try:
         catalog = get_enhanced_catalog()
 
-        # Get dataset
+        # Get dataset metadata
         dataset = catalog.get_dataset_by_id(dataset_id)
         if not dataset:
             raise HTTPException(status_code=404, detail="Dataset not found")
 
-        # TODO: Fetch actual dataset data from database
-        # For now, return error indicating data is needed
-        raise HTTPException(
-            status_code=501,
-            detail="Data profiling requires dataset data access (not yet implemented)"
-        )
+        # Phase 6: Fetch data from data store
+        if not DATA_STORE_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="Data store module not available"
+            )
 
-        # When implemented:
-        # data = fetch_dataset_data(dataset_id)
-        # profile = catalog.profile_dataset(dataset_id, data)
-        # return profile
+        # Try to get data by dataset_id (which may be ds_{run_id})
+        data_store = get_data_store()
+
+        # Extract run_id from dataset_id if it's in ds_{run_id} format
+        run_id = dataset_id
+        if dataset_id.startswith("ds_"):
+            run_id = dataset_id[3:]
+
+        # Try multiple ways to find the data
+        df = data_store.get(dataset_id)
+        if df is None:
+            df = data_store.get_by_run_id(run_id)
+        if df is None:
+            df = data_store.get_by_run_id(dataset_id)
+
+        if df is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Dataset data not found. The dataset may need to be re-processed "
+                       f"or the data has been evicted from storage."
+            )
+
+        # Profile the dataset
+        profile = catalog.profile_dataset(dataset_id, df)
+
+        # Return profile as dict
+        return {
+            "dataset_id": profile.dataset_id,
+            "profiled_at": profile.profiled_at.isoformat(),
+            "total_rows": profile.total_rows,
+            "total_columns": profile.total_columns,
+            "completeness_score": profile.completeness_score,
+            "memory_usage_bytes": profile.memory_usage_bytes,
+            "profile_duration_seconds": profile.profile_duration_seconds,
+            "column_profiles": [
+                {
+                    "column_name": col.column_name,
+                    "data_type": col.data_type,
+                    "total_count": col.total_count,
+                    "null_count": col.null_count,
+                    "null_percentage": col.null_percentage,
+                    "unique_count": col.unique_count,
+                    "cardinality": col.cardinality,
+                    "min_value": col.min_value,
+                    "max_value": col.max_value,
+                    "mean_value": col.mean_value,
+                    "median_value": col.median_value,
+                    "std_dev": col.std_dev,
+                    "percentile_25": col.percentile_25,
+                    "percentile_75": col.percentile_75,
+                    "min_length": col.min_length,
+                    "max_length": col.max_length,
+                    "avg_length": col.avg_length,
+                    "top_values": col.top_values,
+                    "histogram": col.histogram,
+                }
+                for col in profile.column_profiles
+            ],
+        }
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error(f"Profile dataset error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/profile/by-run/{run_id}")
+async def profile_by_run_id(run_id: str):
+    """
+    Generate statistical profile for a pipeline run's data.
+
+    This is a convenience endpoint that profiles data directly by run_id,
+    which is more commonly available than dataset_id.
+
+    Phase 6: New endpoint for easier profiling access.
+    """
+    try:
+        if not DATA_STORE_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="Data store module not available"
+            )
+
+        # Get data by run_id
+        data_store = get_data_store()
+        df = data_store.get_by_run_id(run_id)
+
+        if df is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Data for run_id '{run_id}' not found. "
+                       f"The data may have been evicted from storage."
+            )
+
+        # Get metadata
+        metadata = data_store.get_metadata_by_run_id(run_id)
+        dataset_id = metadata.dataset_id if metadata else f"ds_{run_id}"
+
+        # Profile using the enhanced catalog
+        catalog = get_enhanced_catalog()
+        profile = catalog.profile_dataset(dataset_id, df)
+
+        return {
+            "run_id": run_id,
+            "dataset_id": profile.dataset_id,
+            "dataset_name": metadata.dataset_name if metadata else "unknown",
+            "profiled_at": profile.profiled_at.isoformat(),
+            "total_rows": profile.total_rows,
+            "total_columns": profile.total_columns,
+            "completeness_score": profile.completeness_score,
+            "memory_usage_bytes": profile.memory_usage_bytes,
+            "profile_duration_seconds": profile.profile_duration_seconds,
+            "column_profiles": [
+                {
+                    "column_name": col.column_name,
+                    "data_type": col.data_type,
+                    "total_count": col.total_count,
+                    "null_count": col.null_count,
+                    "null_percentage": col.null_percentage,
+                    "unique_count": col.unique_count,
+                    "cardinality": col.cardinality,
+                    "min_value": col.min_value,
+                    "max_value": col.max_value,
+                    "mean_value": col.mean_value,
+                    "median_value": col.median_value,
+                    "std_dev": col.std_dev,
+                    "percentile_25": col.percentile_25,
+                    "percentile_75": col.percentile_75,
+                    "min_length": col.min_length,
+                    "max_length": col.max_length,
+                    "avg_length": col.avg_length,
+                    "top_values": col.top_values,
+                    "histogram": col.histogram,
+                }
+                for col in profile.column_profiles
+            ],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Profile by run_id error: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/stored-datasets")
+async def list_stored_datasets(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+):
+    """
+    List all datasets available in the data store.
+
+    Returns datasets that can be profiled or analyzed.
+
+    Phase 6: New endpoint for data store discovery.
+    """
+    try:
+        if not DATA_STORE_AVAILABLE:
+            raise HTTPException(
+                status_code=501,
+                detail="Data store module not available"
+            )
+
+        data_store = get_data_store()
+        datasets = data_store.list_datasets(limit=limit, offset=offset)
+
+        return {
+            "total": len(datasets),
+            "offset": offset,
+            "limit": limit,
+            "datasets": [
+                {
+                    "dataset_id": ds.dataset_id,
+                    "run_id": ds.run_id,
+                    "dataset_name": ds.dataset_name,
+                    "filename": ds.filename,
+                    "row_count": ds.row_count,
+                    "column_count": ds.column_count,
+                    "columns": ds.columns,
+                    "created_at": ds.created_at.isoformat(),
+                    "size_bytes": ds.size_bytes,
+                    "storage_path": ds.storage_path,
+                }
+                for ds in datasets
+            ],
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"List stored datasets error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
 
