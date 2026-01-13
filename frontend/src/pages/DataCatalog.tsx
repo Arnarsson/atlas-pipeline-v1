@@ -32,7 +32,7 @@ const AVAILABLE_TAGS = [
 const SOURCE_TYPES = [
   { value: 'all', label: 'All Sources', icon: Database },
   { value: 'csv', label: 'CSV Uploads', icon: Upload },
-  { value: 'airbyte', label: 'Airbyte Syncs', icon: Package },
+  { value: 'atlas', label: 'AtlasIntelligence Syncs', icon: Package },
 ];
 
 export default function DataCatalog() {
@@ -68,8 +68,8 @@ export default function DataCatalog() {
   };
 
   const getSourceTypeBadge = (sourceType: string) => {
-    if (sourceType === 'airbyte' || sourceType?.includes('airbyte')) {
-      return { label: 'Airbyte', color: 'bg-blue-500/10 text-blue-600', icon: Package };
+    if (sourceType === 'atlas' || sourceType?.includes('atlas')) {
+      return { label: 'AtlasIntelligence', color: 'bg-blue-500/10 text-blue-600', icon: Package };
     }
     return { label: 'CSV', color: 'bg-[hsl(var(--secondary))] text-[hsl(var(--muted-foreground))]', icon: Upload };
   };
@@ -77,8 +77,8 @@ export default function DataCatalog() {
   // Filter datasets by source type
   const filteredDatasets = datasets?.filter((dataset: Dataset) => {
     if (selectedSourceType === 'all') return true;
-    const datasetSource = dataset.name?.toLowerCase().includes('airbyte') ||
-                         dataset.description?.toLowerCase().includes('airbyte') ? 'airbyte' : 'csv';
+    const datasetSource = dataset.name?.toLowerCase().includes('atlas') ||
+                         dataset.description?.toLowerCase().includes('atlas') ? 'atlas' : 'csv';
     return datasetSource === selectedSourceType;
   });
 
@@ -188,8 +188,8 @@ export default function DataCatalog() {
       ) : filteredDatasets && filteredDatasets.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredDatasets.map((dataset: Dataset) => {
-            const sourceType = dataset.name?.toLowerCase().includes('airbyte') ||
-                              dataset.description?.toLowerCase().includes('airbyte') ? 'airbyte' : 'csv';
+            const sourceType = dataset.name?.toLowerCase().includes('atlas') ||
+                              dataset.description?.toLowerCase().includes('atlas') ? 'atlas' : 'csv';
             const sourceBadge = getSourceTypeBadge(sourceType);
             const SourceIcon = sourceBadge.icon;
 

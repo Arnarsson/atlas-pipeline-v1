@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.connectors.airbyte.pyairbyte_executor import (
+from app.connectors.atlas_intelligence.pyairbyte_executor import (
     PyAirbyteExecutor,
     PyAirbyteConfig,
     SyncMode,
@@ -518,7 +518,7 @@ async def get_platform_stats() -> Dict[str, Any]:
 # ============================================================================
 
 
-from app.connectors.airbyte.state_manager import get_state_manager
+from app.connectors.atlas_intelligence.state_manager import get_state_manager
 
 
 class CreateStateRequest(BaseModel):
@@ -699,7 +699,7 @@ async def import_state(state_data: Dict[str, Any]) -> Dict[str, Any]:
 # ============================================================================
 
 
-from app.connectors.airbyte.sync_scheduler import (
+from app.connectors.atlas_intelligence.sync_scheduler import (
     get_sync_scheduler,
     SyncMode as SchedulerSyncMode,
 )

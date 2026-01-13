@@ -1,4 +1,8 @@
-"""Airbyte connector integration for Atlas Pipeline."""
+"""AtlasIntelligence connector integration for Atlas Pipeline.
+
+Unified connector platform with 400+ data sources.
+Uses PyAirbyte under the hood for reliable data extraction.
+"""
 
 from .pyairbyte_executor import PyAirbyteExecutor, get_pyairbyte_executor
 from .state_manager import StateManager, get_state_manager, SourceState, StreamState
@@ -37,7 +41,7 @@ __all__ = [
     "BatchConfig",
     "SyncProgress",
     "SyncStrategy",
-    # Real PyAirbyte
+    # Real PyAirbyte integration
     "RealPyAirbyteExecutor",
     "get_real_pyairbyte_executor",
     "is_pyairbyte_available",

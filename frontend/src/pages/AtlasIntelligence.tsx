@@ -31,7 +31,7 @@ import SchemaBrowser from '@/components/SchemaBrowser';
 import SyncStatusPanel from '@/components/SyncStatusPanel';
 
 // Types for connectors
-interface AirbyteConnector {
+interface AtlasConnector {
   id: string;
   description: string;
   type: string;
@@ -40,7 +40,7 @@ interface AirbyteConnector {
   category?: string;
 }
 
-interface AirbyteEntity {
+interface AtlasEntity {
   name: string;
   actions: string[];
   description?: string;
@@ -65,7 +65,7 @@ interface CredentialStatus {
   masked: string;
 }
 
-interface PyAirbyteConnector {
+interface SourceConnector {
   id: string;
   name: string;
   category: string;
@@ -73,29 +73,29 @@ interface PyAirbyteConnector {
   pyairbyte_available: boolean;
 }
 
-interface PyAirbyteCategory {
+interface SourceCategory {
   category: string;
   count: number;
   label: string;
 }
 
 // API functions - MCP
-const getAirbyteConnectors = async (): Promise<AirbyteConnector[]> => {
+const getAtlasConnectors = async (): Promise<AtlasConnector[]> => {
   const response = await api.get('/atlas-intelligence/connectors');
   return response.data;
 };
 
-const getAirbyteHealth = async () => {
+const getAtlasHealth = async () => {
   const response = await api.get('/atlas-intelligence/health');
   return response.data;
 };
 
-const getConnectorEntities = async (connectorId: string): Promise<AirbyteEntity[]> => {
+const getConnectorEntities = async (connectorId: string): Promise<AtlasEntity[]> => {
   const response = await api.get(`/atlas-intelligence/connectors/${connectorId}/entities`);
   return response.data;
 };
 
-const executeAirbyteOperation = async (request: ExecuteRequest) => {
+const executeAtlasOperation = async (request: ExecuteRequest) => {
   const response = await api.post('/atlas-intelligence/execute', request);
   return response.data;
 };
@@ -120,13 +120,13 @@ const updateCredentials = async (data: { connector_id: string; api_key: string }
   return response.data;
 };
 
-// API functions - PyAirbyte
-const getPyAirbyteHealth = async () => {
+// API functions - Atlas Sources
+const getSourcesHealth = async () => {
   const response = await api.get('/atlas-intelligence/pyairbyte/health');
   return response.data;
 };
 
-const getPyAirbyteConnectors = async (category?: string, search?: string): Promise<PyAirbyteConnector[]> => {
+const getSourceConnectors = async (category?: string, search?: string): Promise<SourceConnector[]> => {
   const params = new URLSearchParams();
   if (category) params.append('category', category);
   if (search) params.append('search', search);
@@ -134,7 +134,7 @@ const getPyAirbyteConnectors = async (category?: string, search?: string): Promi
   return response.data;
 };
 
-const getPyAirbyteCategories = async (): Promise<PyAirbyteCategory[]> => {
+const getSourceCategories = async (): Promise<SourceCategory[]> => {
   const response = await api.get('/atlas-intelligence/pyairbyte/categories');
   return response.data;
 };
@@ -144,7 +144,7 @@ const getPlatformStats = async () => {
   return response.data;
 };
 
-type TabType = 'mcp' | 'pyairbyte' | 'n8n';
+type TabType = 'mcp' | 'sources' | 'n8n';
 
 export default function AtlasIntelligence() {
   const [activeTab, setActiveTab] = useState<TabType>('mcp');
@@ -153,23 +153,23 @@ export default function AtlasIntelligence() {
   const [editingCredential, setEditingCredential] = useState<string | null>(null);
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
-  const [pyairbyteSearch, setPyairbyteSearch] = useState('');
+  const [sourceSearch, setSourceSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [configWizardConnector, setConfigWizardConnector] = useState<PyAirbyteConnector | null>(null);
-  const [schemaBrowserConnector, setSchemaBrowserConnector] = useState<PyAirbyteConnector | null>(null);
+  const [configWizardConnector, setConfigWizardConnector] = useState<SourceConnector | null>(null);
+  const [schemaBrowserConnector, setSchemaBrowserConnector] = useState<SourceConnector | null>(null);
   const [showSyncStatus, setShowSyncStatus] = useState(false);
   const queryClient = useQueryClient();
 
   // MCP Queries
   const { data: connectors = [], isLoading: loadingConnectors } = useQuery({
-    queryKey: ['airbyte-connectors'],
-    queryFn: getAirbyteConnectors,
+    queryKey: ['atlas-connectors'],
+    queryFn: getAtlasConnectors,
     refetchInterval: 60000,
   });
 
   const { data: health } = useQuery({
-    queryKey: ['airbyte-health'],
-    queryFn: getAirbyteHealth,
+    queryKey: ['atlas-health'],
+    queryFn: getAtlasHealth,
     refetchInterval: 30000,
   });
 
@@ -197,24 +197,24 @@ export default function AtlasIntelligence() {
     enabled: showCredentials,
   });
 
-  // PyAirbyte Queries
-  const { data: pyairbyteHealth } = useQuery({
-    queryKey: ['pyairbyte-health'],
-    queryFn: getPyAirbyteHealth,
-    enabled: activeTab === 'pyairbyte',
+  // Atlas Sources Queries
+  const { data: sourcesHealth } = useQuery({
+    queryKey: ['sources-health'],
+    queryFn: getSourcesHealth,
+    enabled: activeTab === 'sources',
     refetchInterval: 30000,
   });
 
-  const { data: pyairbyteConnectors = [], isLoading: loadingPyAirbyte } = useQuery({
-    queryKey: ['pyairbyte-connectors', selectedCategory, pyairbyteSearch],
-    queryFn: () => getPyAirbyteConnectors(selectedCategory || undefined, pyairbyteSearch || undefined),
-    enabled: activeTab === 'pyairbyte',
+  const { data: sourceConnectors = [], isLoading: loadingSources } = useQuery({
+    queryKey: ['source-connectors', selectedCategory, sourceSearch],
+    queryFn: () => getSourceConnectors(selectedCategory || undefined, sourceSearch || undefined),
+    enabled: activeTab === 'sources',
   });
 
-  const { data: pyairbyteCategories = [] } = useQuery({
-    queryKey: ['pyairbyte-categories'],
-    queryFn: getPyAirbyteCategories,
-    enabled: activeTab === 'pyairbyte',
+  const { data: sourceCategories = [] } = useQuery({
+    queryKey: ['source-categories'],
+    queryFn: getSourceCategories,
+    enabled: activeTab === 'sources',
   });
 
   const { data: stats } = useQuery({
@@ -225,7 +225,7 @@ export default function AtlasIntelligence() {
 
   // Mutations
   const executeMutation = useMutation({
-    mutationFn: executeAirbyteOperation,
+    mutationFn: executeAtlasOperation,
     onSuccess: (data) => {
       toast.success('Operation executed successfully');
       console.log('Execution result:', data);
@@ -342,12 +342,12 @@ export default function AtlasIntelligence() {
           </span>
         </Button>
         <Button
-          variant={activeTab === 'pyairbyte' ? 'default' : 'ghost'}
-          onClick={() => { setActiveTab('pyairbyte'); setSelectedConnector(null); }}
+          variant={activeTab === 'sources' ? 'default' : 'ghost'}
+          onClick={() => { setActiveTab('sources'); setSelectedConnector(null); }}
           className="flex items-center gap-2"
         >
           <Package className="w-4 h-4" />
-          PyAirbyte Sources
+          Atlas Sources
           <span className="ml-1 px-1.5 py-0.5 text-xs rounded bg-[hsl(var(--secondary))]">
             {stats?.pyairbyte_connectors?.total || '70+'}
           </span>
@@ -406,7 +406,7 @@ export default function AtlasIntelligence() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-[hsl(var(--muted-foreground))]">PyAirbyte Sources</p>
+                <p className="text-sm text-[hsl(var(--muted-foreground))]">Atlas Sources</p>
                 <p className="text-2xl font-semibold text-[hsl(var(--foreground))]">
                   {stats?.pyairbyte_connectors?.total || '70+'}
                 </p>
@@ -714,31 +714,31 @@ export default function AtlasIntelligence() {
         </div>
       )}
 
-      {/* PyAirbyte Tab Content */}
-      {activeTab === 'pyairbyte' && (
+      {/* Atlas Sources Tab Content */}
+      {activeTab === 'sources' && (
         <div className="space-y-6">
-          {/* PyAirbyte Status Banner */}
+          {/* Atlas Sources Status Banner */}
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <Package className="w-8 h-8 text-blue-500" />
                   <div>
-                    <h3 className="font-medium text-[hsl(var(--foreground))]">PyAirbyte Integration</h3>
+                    <h3 className="font-medium text-[hsl(var(--foreground))]">AtlasIntelligence Sources</h3>
                     <p className="text-sm text-[hsl(var(--muted-foreground))]">
-                      {pyairbyteHealth?.message || 'Access 300+ data sources through Airbyte protocol'}
+                      {sourcesHealth?.message || 'Access 300+ data sources through Atlas connector protocol'}
                     </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {pyairbyteHealth?.pyairbyte_installed ? (
+                  {sourcesHealth?.pyairbyte_installed ? (
                     <span className="px-3 py-1 text-sm rounded-full bg-green-500/10 text-green-600">
                       <CheckCircle2 className="w-4 h-4 inline mr-1" />
                       Ready
                     </span>
                   ) : (
                     <span className="px-3 py-1 text-sm rounded-full bg-yellow-500/10 text-yellow-600">
-                      Install: pip install airbyte
+                      Install: pip install pyairbyte
                     </span>
                   )}
                 </div>
@@ -753,8 +753,8 @@ export default function AtlasIntelligence() {
               <input
                 type="text"
                 placeholder="Search connectors..."
-                value={pyairbyteSearch}
-                onChange={(e) => setPyairbyteSearch(e.target.value)}
+                value={sourceSearch}
+                onChange={(e) => setSourceSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
               />
             </div>
@@ -764,7 +764,7 @@ export default function AtlasIntelligence() {
               className="px-4 py-2 border border-[hsl(var(--border))] rounded-md bg-[hsl(var(--background))] text-[hsl(var(--foreground))]"
             >
               <option value="">All Categories</option>
-              {pyairbyteCategories.map((cat) => (
+              {sourceCategories.map((cat) => (
                 <option key={cat.category} value={cat.category}>
                   {cat.label} ({cat.count})
                 </option>
@@ -784,7 +784,7 @@ export default function AtlasIntelligence() {
             >
               All
             </button>
-            {pyairbyteCategories.slice(0, 8).map((cat) => (
+            {sourceCategories.slice(0, 8).map((cat) => (
               <button
                 key={cat.category}
                 onClick={() => setSelectedCategory(cat.category)}
@@ -802,14 +802,14 @@ export default function AtlasIntelligence() {
           </div>
 
           {/* Connector Grid */}
-          {loadingPyAirbyte ? (
+          {loadingSources ? (
             <div className="text-center py-12">
               <RefreshCw className="w-8 h-8 animate-spin mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
               <p className="text-[hsl(var(--muted-foreground))]">Loading connectors...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {pyairbyteConnectors.map((connector) => (
+              {sourceConnectors.map((connector) => (
                 <Card key={connector.id} className="hover:border-[hsl(var(--foreground))] transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -859,7 +859,7 @@ export default function AtlasIntelligence() {
             </div>
           )}
 
-          {pyairbyteConnectors.length === 0 && !loadingPyAirbyte && (
+          {sourceConnectors.length === 0 && !loadingSources && (
             <div className="text-center py-12">
               <Package className="w-12 h-12 mx-auto text-[hsl(var(--muted-foreground))] mb-4" />
               <h3 className="text-lg font-medium text-[hsl(var(--foreground))] mb-2">
@@ -939,7 +939,7 @@ export default function AtlasIntelligence() {
           onClose={() => setConfigWizardConnector(null)}
           onSuccess={(sourceId) => {
             toast.success(`Connector ${configWizardConnector.name} configured with ID: ${sourceId}`);
-            queryClient.invalidateQueries({ queryKey: ['pyairbyte-connectors'] });
+            queryClient.invalidateQueries({ queryKey: ['source-connectors'] });
           }}
         />
       )}

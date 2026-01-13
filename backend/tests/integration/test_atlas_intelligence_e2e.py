@@ -8,9 +8,9 @@ import asyncio
 from datetime import datetime
 from typing import Dict, Any, List
 
-from app.connectors.airbyte.pyairbyte_executor import PyAirbyteExecutor, get_pyairbyte_executor
-from app.connectors.airbyte.state_manager import StateManager, get_state_manager
-from app.connectors.airbyte.sync_scheduler import SyncScheduler, get_sync_scheduler, SyncStatus
+from app.connectors.atlas_intelligence.pyairbyte_executor import PyAirbyteExecutor, get_pyairbyte_executor
+from app.connectors.atlas_intelligence.state_manager import StateManager, get_state_manager
+from app.connectors.atlas_intelligence.sync_scheduler import SyncScheduler, get_sync_scheduler, SyncStatus
 
 
 class TestCompleteConnectorWorkflow:

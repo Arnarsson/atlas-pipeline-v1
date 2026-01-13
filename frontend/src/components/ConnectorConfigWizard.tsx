@@ -112,7 +112,7 @@ export default function ConnectorConfigWizard({ connector, onClose, onSuccess }:
     mutationFn: createSourceState,
     onSuccess: (data) => {
       toast.success('Connector configured successfully');
-      queryClient.invalidateQueries({ queryKey: ['pyairbyte-connectors'] });
+      queryClient.invalidateQueries({ queryKey: ['source-connectors'] });
       queryClient.invalidateQueries({ queryKey: ['platform-stats'] });
       onSuccess?.(data.source_id);
       onClose();
@@ -179,7 +179,7 @@ export default function ConnectorConfigWizard({ connector, onClose, onSuccess }:
           <AlertCircle className="w-12 h-12 mx-auto text-yellow-500 mb-4" />
           <p className="text-[hsl(var(--foreground))]">No configuration schema available</p>
           <p className="text-sm text-[hsl(var(--muted-foreground))] mt-2">
-            This connector may not require configuration or PyAirbyte is not installed.
+            This connector may not require configuration or the connector library is not installed.
           </p>
           <Button className="mt-4" onClick={() => setStep('streams')}>
             Continue Anyway

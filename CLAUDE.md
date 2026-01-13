@@ -236,15 +236,15 @@ atlas_pipeline (database)
 ### **✅ Completed (January 12, 2026)**
 
 **Backend Implementation:**
-- `backend/app/connectors/airbyte/pyairbyte_executor.py` (350 lines)
+- `backend/app/connectors/atlas_intelligence/pyairbyte_executor.py` (350 lines)
   - 70+ connectors in catalog across 11 categories
   - Database, CRM, Marketing, E-commerce, Analytics, Project, Communication, Storage, HR, Finance, Development
   - Methods: `list_available_connectors()`, `configure_source()`, `discover_streams()`, `read_stream()`
-- `backend/app/connectors/airbyte/state_manager.py` (400 lines)
+- `backend/app/connectors/atlas_intelligence/state_manager.py` (400 lines)
   - Full state persistence for incremental syncs
   - Stream-level and source-level state tracking
   - Export/import for backup and migration
-- `backend/app/connectors/airbyte/sync_scheduler.py` (450 lines)
+- `backend/app/connectors/atlas_intelligence/sync_scheduler.py` (450 lines)
   - Sync job creation, execution, and history
   - Cron-based scheduled syncs (ScheduledSync)
   - Concurrent job limits (configurable max)
@@ -256,8 +256,8 @@ atlas_pipeline (database)
 
 **Frontend Implementation:**
 - `frontend/src/pages/AtlasIntelligence.tsx` (950 lines)
-  - 3-tab interface: MCP Connectors, PyAirbyte Sources, N8N Workflows
-  - Category filtering and search for PyAirbyte
+  - 3-tab interface: MCP Connectors, Atlas Sources, N8N Workflows
+  - Category filtering and search for Atlas Sources
   - Credential management UI
   - Health status cards
   - Sync status toggle button
@@ -274,22 +274,22 @@ atlas_pipeline (database)
   - Schedule management (enable/disable, run now, delete)
 
 **Performance & Integration:**
-- `backend/app/connectors/airbyte/performance.py` (350 lines)
+- `backend/app/connectors/atlas_intelligence/performance.py` (350 lines)
   - Batch processing with configurable sizes
   - Memory-efficient streaming with backpressure
   - Progress tracking and checkpointing
   - Parallel stream processing
   - Automatic strategy selection (small/medium/large/xlarge)
-- `backend/app/connectors/airbyte/real_pyairbyte.py` (400 lines)
+- `backend/app/connectors/atlas_intelligence/real_pyairbyte.py` (400 lines)
   - Real PyAirbyte integration when installed
   - Graceful fallback to mock implementation
-  - Full Airbyte catalog support
+  - Full connector catalog support
   - Automatic connector installation
 
 **Test Coverage:**
-- `backend/tests/connectors/airbyte/test_pyairbyte_executor.py` (200 lines)
-- `backend/tests/connectors/airbyte/test_state_manager.py` (300 lines)
-- `backend/tests/connectors/airbyte/test_sync_scheduler.py` (350 lines)
+- `backend/tests/connectors/atlas_intelligence/test_pyairbyte_executor.py` (200 lines)
+- `backend/tests/connectors/atlas_intelligence/test_state_manager.py` (300 lines)
+- `backend/tests/connectors/atlas_intelligence/test_sync_scheduler.py` (350 lines)
 - `backend/tests/api/test_atlas_intelligence.py` (400 lines)
 - `backend/tests/integration/test_atlas_intelligence_e2e.py` (500 lines) - E2E workflows
 
@@ -1001,7 +1001,7 @@ npm install  # Frontend
 
 ## 🔧 Recent Updates
 
-### **Airbyte Integration - Phase 6: Frontend** (January 13, 2026, Commit: 229d606)
+### **AtlasIntelligence Integration - Phase 6: Frontend** (January 13, 2026, Commit: 229d606)
 ✅ **PHASES 2-6 COMPLETE: DATABASE + STATE + FRONTEND UI**
 
 **Status**: 84% Complete (Phases 2-6 done, 10.5h | Phase 7 remaining, 2h)
@@ -1015,9 +1015,9 @@ npm install  # Frontend
   - Type inference from pandas DataFrames
   - PostgreSQL value conversion
 
-- ✅ Phase 3: **Airbyte Orchestrator** (2h) - `airbyte_orchestrator.py` (398 lines)
+- ✅ Phase 3: **Atlas Orchestrator** (2h) - `atlas_orchestrator.py` (398 lines)
   - 8-step end-to-end pipeline coordination:
-    1. Read data from Airbyte/mock
+    1. Read data from AtlasIntelligence/mock
     2. Write raw to explore layer
     3. Run PII detection (Presidio ML)
     4. Run quality checks (Soda Core)
@@ -1050,7 +1050,7 @@ npm install  # Frontend
     - Pipeline checks status
     - Navigation links to Catalog, Quality, PII, Lineage
   - **Enhanced SyncStatusPanel** (+50 lines): "View Results" button for completed jobs
-  - **Enhanced DataCatalog** (+70 lines): Source type filter (CSV/Airbyte) with badges
+  - **Enhanced DataCatalog** (+70 lines): Source type filter (CSV/AtlasIntelligence) with badges
   - In-memory caching for performance
 
 **Data Flow (NOW COMPLETE):**
@@ -1063,7 +1063,7 @@ Scheduler: run_sync_job()
   ↓
 Orchestrator: execute_full_sync()
   ↓
-✅ Read from Airbyte/Mock (300 records)
+✅ Read from AtlasIntelligence/Mock (300 records)
 ✅ Write to explore.* (raw JSONB)
 ✅ PII Detection (7 findings) - Presidio
 ✅ Quality Checks (97% score) - Soda Core
@@ -1076,12 +1076,12 @@ Frontend: Show results + link to Catalog/Quality/PII
 ```
 
 **Files Created/Modified:**
-- `backend/app/connectors/airbyte/database_writer.py` (NEW, 474 lines)
-- `backend/app/connectors/airbyte/airbyte_orchestrator.py` (NEW, 398 lines)
-- `backend/app/connectors/airbyte/sync_scheduler.py` (MODIFIED, +142 lines)
-- `backend/app/connectors/airbyte/state_manager.py` (MODIFIED, +210 lines)
-- `backend/requirements-simple.txt` (MODIFIED, +1 line: airbyte>=0.20.0)
-- `backend/AIRBYTE_COMPLETION_STATUS.md` (NEW, 660 lines - comprehensive status doc)
+- `backend/app/connectors/atlas_intelligence/database_writer.py` (NEW, 474 lines)
+- `backend/app/connectors/atlas_intelligence/atlas_orchestrator.py` (NEW, 398 lines)
+- `backend/app/connectors/atlas_intelligence/sync_scheduler.py` (MODIFIED, +142 lines)
+- `backend/app/connectors/atlas_intelligence/state_manager.py` (MODIFIED, +210 lines)
+- `backend/requirements-simple.txt` (MODIFIED, +1 line: pyairbyte>=0.20.0)
+- `backend/ATLAS_INTELLIGENCE_STATUS.md` (NEW, 660 lines - comprehensive status doc)
 
 **Testing Status:**
 - ✅ Backend running on http://localhost:8000 (healthy)
@@ -1102,7 +1102,7 @@ Frontend: Show results + link to Catalog/Quality/PII
 **Resume Instructions:**
 ```
 For web Claude Code, read:
-1. backend/AIRBYTE_COMPLETION_STATUS.md - Current status
+1. backend/ATLAS_INTELLIGENCE_STATUS.md - Current status
 2. ~/.claude/plans/tranquil-stirring-rabbit.md - Complete plan
 3. CLAUDE.md - Project context
 
@@ -1111,9 +1111,9 @@ Continue with Phase 6: Frontend integration
 
 **Commits:**
 - `d95fcf4`: Add database writer for Explore/Chart/Navigate layers
-- `c184a3e`: Add Airbyte orchestrator for complete pipeline coordination
-- `3266324`: Integrate Airbyte orchestrator with sync scheduler
-- `b9a68fd`: Add PostgreSQL persistence to Airbyte state manager
+- `c184a3e`: Add Atlas orchestrator for complete pipeline coordination
+- `3266324`: Integrate Atlas orchestrator with sync scheduler
+- `b9a68fd`: Add PostgreSQL persistence to Atlas state manager
 
 ---
 

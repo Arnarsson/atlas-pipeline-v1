@@ -1,7 +1,7 @@
 """
-Airbyte Database Writer
+AtlasIntelligence Database Writer
 
-Writes data from Airbyte syncs to Atlas medallion architecture layers.
+Writes data from connector syncs to Atlas medallion architecture layers.
 Integrates with Explore/Chart/Navigate database schema.
 
 Author: Atlas Pipeline Team
@@ -19,7 +19,7 @@ from uuid import UUID
 logger = logging.getLogger(__name__)
 
 
-class AirbyteDatabaseWriter:
+class AtlasDatabaseWriter:
     """Writes data from Airbyte syncs to Atlas database layers."""
 
     def __init__(self, db_pool: asyncpg.Pool):
@@ -30,7 +30,7 @@ class AirbyteDatabaseWriter:
             db_pool: AsyncPG connection pool
         """
         self.db_pool = db_pool
-        logger.info("Initialized AirbyteDatabaseWriter")
+        logger.info("Initialized AtlasDatabaseWriter")
 
     async def write_to_explore(
         self,
@@ -512,7 +512,7 @@ class AirbyteDatabaseWriter:
         return name
 
 
-async def get_database_writer(database_url: str) -> AirbyteDatabaseWriter:
+async def get_database_writer(database_url: str) -> AtlasDatabaseWriter:
     """
     Create database writer with connection pool.
 
@@ -520,7 +520,7 @@ async def get_database_writer(database_url: str) -> AirbyteDatabaseWriter:
         database_url: PostgreSQL connection URL
 
     Returns:
-        Initialized AirbyteDatabaseWriter instance
+        Initialized AtlasDatabaseWriter instance
 
     Example:
         >>> writer = await get_database_writer("postgresql://user:pass@localhost/dbname")
@@ -534,7 +534,7 @@ async def get_database_writer(database_url: str) -> AirbyteDatabaseWriter:
             command_timeout=60
         )
         logger.info("Created database connection pool (5-20 connections)")
-        return AirbyteDatabaseWriter(pool)
+        return AtlasDatabaseWriter(pool)
     except Exception as e:
         logger.error(f"Failed to create database writer: {e}")
         raise

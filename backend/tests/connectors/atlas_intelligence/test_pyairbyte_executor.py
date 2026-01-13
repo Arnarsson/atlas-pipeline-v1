@@ -7,7 +7,7 @@ import pytest
 from unittest.mock import MagicMock, patch, AsyncMock
 from typing import Dict, Any
 
-from app.connectors.airbyte.pyairbyte_executor import (
+from app.connectors.atlas_intelligence.pyairbyte_executor import (
     PyAirbyteExecutor,
     get_pyairbyte_executor,
     CONNECTOR_CATALOG

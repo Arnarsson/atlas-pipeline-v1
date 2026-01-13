@@ -62,7 +62,7 @@ except ImportError as e:
 RAG_AVAILABLE = False
 try:
     from app.ai.embeddings import get_embedding_service, embed_and_store
-    from app.connectors.airbyte.airbyte_rag import get_rag_pipeline, run_rag_sync
+    from app.connectors.atlas_intelligence.atlas_rag import get_rag_pipeline, run_rag_sync
     RAG_AVAILABLE = True
     logger.info("✅ RAG pipeline loaded - vector embeddings enabled")
 except ImportError as e:

@@ -1,7 +1,7 @@
 """
-Airbyte Orchestrator
+AtlasIntelligence Orchestrator
 
-Orchestrates complete Airbyte sync pipeline end-to-end.
+Orchestrates complete data sync pipeline end-to-end.
 Coordinates data reading, PII detection, quality validation, database writes, and lineage tracking.
 
 Author: Atlas Pipeline Team
@@ -14,22 +14,22 @@ from typing import Dict, Any, Optional
 from uuid import uuid4
 import logging
 
-from app.connectors.airbyte.real_pyairbyte import RealPyAirbyteExecutor
-from app.connectors.airbyte.database_writer import AirbyteDatabaseWriter
-from app.connectors.airbyte.state_manager import StateManager
+from app.connectors.atlas_intelligence.real_pyairbyte import RealPyAirbyteExecutor
+from app.connectors.atlas_intelligence.database_writer import AtlasDatabaseWriter
+from app.connectors.atlas_intelligence.state_manager import StateManager
 from app.pipeline.pii.presidio_detector import PresidioPIIDetector
 from app.pipeline.quality.soda_validator import SodaQualityValidator
 
 logger = logging.getLogger(__name__)
 
 
-class AirbyteOrchestrator:
+class AtlasOrchestrator:
     """Orchestrates complete Airbyte sync pipeline."""
 
     def __init__(
         self,
         executor: RealPyAirbyteExecutor,
-        writer: AirbyteDatabaseWriter,
+        writer: AtlasDatabaseWriter,
         state_manager: StateManager,
         pii_detector: Optional[PresidioPIIDetector] = None,
         quality_validator: Optional[SodaQualityValidator] = None
@@ -49,7 +49,7 @@ class AirbyteOrchestrator:
         self.state_manager = state_manager
         self.pii_detector = pii_detector
         self.quality_validator = quality_validator
-        logger.info("Initialized AirbyteOrchestrator")
+        logger.info("Initialized AtlasOrchestrator")
 
     async def execute_full_sync(
         self,
@@ -322,13 +322,13 @@ class AirbyteOrchestrator:
         )
 
 
-async def get_airbyte_orchestrator(
+async def get_atlas_orchestrator(
     database_url: str,
     enable_pii_detection: bool = True,
     enable_quality_validation: bool = True
-) -> AirbyteOrchestrator:
+) -> AtlasOrchestrator:
     """
-    Create Airbyte orchestrator with all dependencies.
+    Create AtlasIntelligence orchestrator with all dependencies.
 
     Args:
         database_url: PostgreSQL connection URL
@@ -336,7 +336,7 @@ async def get_airbyte_orchestrator(
         enable_quality_validation: Enable quality validation (default: True)
 
     Returns:
-        Initialized AirbyteOrchestrator instance
+        Initialized AtlasOrchestrator instance
 
     Example:
         >>> orchestrator = await get_airbyte_orchestrator(
@@ -348,9 +348,9 @@ async def get_airbyte_orchestrator(
     """
     try:
         # Import factory functions
-        from app.connectors.airbyte.real_pyairbyte import get_real_pyairbyte_executor
-        from app.connectors.airbyte.database_writer import get_database_writer
-        from app.connectors.airbyte.state_manager import get_state_manager
+        from app.connectors.atlas_intelligence.real_pyairbyte import get_real_pyairbyte_executor
+        from app.connectors.atlas_intelligence.database_writer import get_database_writer
+        from app.connectors.atlas_intelligence.state_manager import get_state_manager
 
         # Create executor (real or mock)
         logger.info("Creating PyAirbyte executor...")
@@ -384,7 +384,7 @@ async def get_airbyte_orchestrator(
             except Exception as e:
                 logger.warning(f"Failed to create quality validator: {e}")
 
-        orchestrator = AirbyteOrchestrator(
+        orchestrator = AtlasOrchestrator(
             executor=executor,
             writer=writer,
             state_manager=state_manager,
@@ -392,7 +392,7 @@ async def get_airbyte_orchestrator(
             quality_validator=quality_validator
         )
 
-        logger.info("✅ Airbyte orchestrator created successfully")
+        logger.info("✅ AtlasIntelligence orchestrator created successfully")
         return orchestrator
 
     except Exception as e:

@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 from unittest.mock import MagicMock, AsyncMock, patch
 from typing import Dict, Any
 
-from app.connectors.airbyte.sync_scheduler import (
+from app.connectors.atlas_intelligence.sync_scheduler import (
     SyncScheduler,
     get_sync_scheduler,
     SyncJob,

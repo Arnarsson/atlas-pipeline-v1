@@ -222,12 +222,12 @@ class SyncScheduler:
                 job.records_synced = result.get("records_synced", 0)
             else:
                 # Use orchestrator for real/mock sync
-                from app.connectors.airbyte.airbyte_orchestrator import get_airbyte_orchestrator
+                from app.connectors.atlas_intelligence.atlas_orchestrator import get_atlas_orchestrator
                 from app.core.config import settings
 
                 try:
                     # Create orchestrator
-                    orchestrator = await get_airbyte_orchestrator(
+                    orchestrator = await get_atlas_orchestrator(
                         database_url=settings.DATABASE_URL,
                         enable_pii_detection=True,
                         enable_quality_validation=True

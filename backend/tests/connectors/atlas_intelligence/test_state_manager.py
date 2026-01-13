@@ -7,7 +7,7 @@ import pytest
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
-from app.connectors.airbyte.state_manager import (
+from app.connectors.atlas_intelligence.state_manager import (
     StateManager,
     get_state_manager,
     StreamState,

@@ -1,11 +1,11 @@
 """
-Airbyte RAG Integration (Open Source)
+AtlasIntelligence RAG Integration
 
 Uses PyAirbyte + pgvector/Chroma for RAG-ready data pipelines.
-Based on: https://github.com/airbytehq/PyAirbyte
+Powered by open source connectors from PyAirbyte.
 
 Features:
-- Extract data from 400+ sources via PyAirbyte
+- Extract data from 400+ sources via AtlasIntelligence connectors
 - Automatic chunking and embedding
 - Store in pgvector (PostgreSQL) or Chroma (open source)
 - LangChain/LlamaIndex compatible output
@@ -50,7 +50,7 @@ except ImportError:
     logger.info("ℹ️ sentence-transformers not installed - embeddings disabled")
 
 
-class AirbyteRAGPipeline:
+class AtlasRAGPipeline:
     """
     RAG-ready data pipeline using PyAirbyte.
 
@@ -492,13 +492,13 @@ def create_langchain_documents(chunks: list[dict[str, Any]]) -> list:
 # CONVENIENCE FUNCTIONS
 # =============================================================================
 
-_rag_pipeline: Optional[AirbyteRAGPipeline] = None
+_rag_pipeline: Optional[AtlasRAGPipeline] = None
 
-def get_rag_pipeline() -> AirbyteRAGPipeline:
+def get_rag_pipeline() -> AtlasRAGPipeline:
     """Get singleton RAG pipeline instance."""
     global _rag_pipeline
     if _rag_pipeline is None:
-        _rag_pipeline = AirbyteRAGPipeline()
+        _rag_pipeline = AtlasRAGPipeline()
     return _rag_pipeline
 
 
