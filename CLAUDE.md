@@ -1,20 +1,25 @@
 # CLAUDE.md - Atlas Data Pipeline Platform
 
-**Last Updated**: January 12, 2026
-**Status**: Phase 5 AtlasIntelligence 100% COMPLETE ✅
+**Last Updated**: January 13, 2026
+**Status**: Phase 0 EU AI Act + Governance MERGED ✅
 **GitHub**: https://github.com/Arnarsson/atlas-pipeline-v1
 
 ---
 
 ## 🎯 Current Status
 
-### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 1-5) ✅**
+### **COMPLETE: Full Atlas Data Pipeline Platform (Phases 0-5) ✅**
 
-**Progress**: 100% of Atlas Data Pipeline Standard ✅ | Phase 5: 100% Complete ✅
-**Code**: ~60,000+ lines (Backend + Frontend + Database + Tests + Docs)
+**Progress**: 100% of Atlas Data Pipeline Standard ✅ | Phase 0: MERGED ✅
+**Code**: ~62,000+ lines (Backend + Frontend + Database + Tests + Docs)
 **Tests**: 300+ total (170+ backend ✅ + 124 frontend E2E)
 
 **Recent Updates (January 2026)**:
+- **Phase 0: EU AI Act Compliance + Governance RBAC** - MERGED ✅ (PR #4)
+  - EU AI Act Assessment: Risk levels, Article compliance (5,6,9,10,11,12,14,30)
+  - Governance RBAC: 6 roles, 14 permissions
+  - Audit Logging: 5+ year retention (Art. 12)
+  - 17 new API endpoints
 - **Phase 5: AtlasIntelligence Connector Platform** - COMPLETE ✅
   - 13 MCP Connectors (GitHub, Stripe, HubSpot, Salesforce, etc.)
   - 70+ PyAirbyte Sources in catalog (expandable to 300+)
