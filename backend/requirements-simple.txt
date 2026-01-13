@@ -36,3 +36,12 @@ sentence-transformers>=2.2.0,<3.0.0  # Local embeddings
 # openai>=1.0.0  # Uncomment for OpenAI embeddings
 # chromadb>=0.4.0  # Uncomment for Chroma vector store
 # langchain>=0.1.0  # Uncomment for LangChain integration
+
+# Document Processing (Sprint 1)
+unstructured[all-docs]>=0.11.0  # Primary document extraction
+beautifulsoup4>=4.12.0  # HTML table parsing
+# azure-ai-formrecognizer>=3.3.0  # Uncomment for Azure OCR fallback
+
+# Report Generation (Sprint 2)
+reportlab>=4.0.0  # PDF generation
+openpyxl>=3.1.0  # Excel generation

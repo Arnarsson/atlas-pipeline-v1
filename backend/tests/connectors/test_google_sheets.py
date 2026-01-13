@@ -7,6 +7,10 @@ import pandas as pd
 import pytest
 
 from app.connectors.base import ConnectionConfig
+
+# Skip all tests in this module if google library is not available
+pytest.importorskip("google.oauth2.service_account", reason="Google API client not installed")
+
 from app.connectors.google_sheets import GoogleSheetsConnector
 
 

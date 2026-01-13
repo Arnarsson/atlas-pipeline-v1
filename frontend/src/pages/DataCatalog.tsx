@@ -37,8 +37,7 @@ const SOURCE_TYPES = [
 ];
 
 export default function DataCatalog() {
-  const [searchParams] = useSearchParams();
-  const runIdFromUrl = searchParams.get('run_id');
+  useSearchParams(); // Available for URL parameter handling
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);

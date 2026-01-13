@@ -644,3 +644,7 @@ def get_pyairbyte_executor() -> PyAirbyteExecutor:
     if _executor is None:
         _executor = PyAirbyteExecutor()
     return _executor
+
+
+# Module-level export for backward compatibility
+CONNECTOR_CATALOG = PyAirbyteExecutor.CONNECTOR_CATALOG

@@ -12,6 +12,8 @@ import {
   Search,
   Zap,
   ChevronDown,
+  CheckCircle,
+  Inbox,
 } from 'lucide-react';
 
 interface NavItem {
@@ -23,6 +25,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Inbox', href: '/inbox', icon: Inbox },
   { name: 'Upload', href: '/upload', icon: Upload },
   {
     name: 'Connectors',
@@ -39,6 +42,7 @@ const navigation: NavItem[] = [
   { name: 'Features', href: '/features', icon: Box },
   { name: 'GDPR', href: '/gdpr', icon: Shield },
   { name: 'Lineage', href: '/lineage', icon: GitBranch },
+  { name: 'Decisions', href: '/decisions', icon: CheckCircle },
 ];
 
 export default function Sidebar() {
