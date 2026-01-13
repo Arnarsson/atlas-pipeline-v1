@@ -22,6 +22,7 @@ import ConnectorHealth from './pages/ConnectorHealth';
 import Credentials from './pages/Credentials';
 import Schedules from './pages/Schedules';
 import RBAC from './pages/RBAC';
+import KPIDashboard from './pages/KPIDashboard';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -95,6 +96,7 @@ export default function App() {
             <Route path="connectors" element={<Connectors />} />
             <Route path="atlas-intelligence" element={<AtlasIntelligence />} />
             <Route path="inbox" element={<Inbox />} />
+            <Route path="kpi" element={<KPIDashboard />} />
           </Route>
         </Routes>
       </BrowserRouter>

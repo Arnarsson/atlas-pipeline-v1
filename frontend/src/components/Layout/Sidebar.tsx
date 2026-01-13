@@ -68,6 +68,7 @@ const navGroups: NavGroup[] = [
       { name: 'PII', href: '/pii', icon: Shield },
       { name: 'Lineage', href: '/lineage', icon: GitBranch },
       { name: 'Features', href: '/features', icon: FileText },
+      { name: 'KPI', href: '/kpi', icon: BarChart3 },
     ],
   },
   {
