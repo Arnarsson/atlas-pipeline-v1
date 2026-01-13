@@ -12,6 +12,8 @@ import FeatureStore from './pages/FeatureStore';
 import GDPR from './pages/GDPR';
 import Lineage from './pages/Lineage';
 import AtlasIntelligence from './pages/AtlasIntelligence';
+import Decisions from './pages/Decisions';
+import Inbox from './pages/Inbox';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +66,8 @@ export default function App() {
             <Route path="gdpr" element={<GDPR />} />
             <Route path="lineage" element={<Lineage />} />
             <Route path="atlas-intelligence" element={<AtlasIntelligence />} />
+            <Route path="decisions" element={<Decisions />} />
+            <Route path="inbox" element={<Inbox />} />
           </Route>
         </Routes>
       </BrowserRouter>
