@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  # PostgreSQL Database
+  # PostgreSQL Database with pgvector for AI/RAG
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg16
     container_name: atlas-postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-atlas_user}
@@ -13,6 +13,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./backups:/backups
+      - ./backend/database/init:/docker-entrypoint-initdb.d
     ports:
       - "${POSTGRES_PORT:-5432}:5432"
     healthcheck:

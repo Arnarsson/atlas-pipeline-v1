@@ -12,6 +12,7 @@ import {
   Search,
   Zap,
   ChevronDown,
+  Brain,
 } from 'lucide-react';
 
 interface NavItem {
@@ -39,6 +40,7 @@ const navigation: NavItem[] = [
   { name: 'Features', href: '/features', icon: Box },
   { name: 'GDPR', href: '/gdpr', icon: Shield },
   { name: 'Lineage', href: '/lineage', icon: GitBranch },
+  { name: 'AI Query', href: '/ai-query', icon: Brain },
 ];
 
 export default function Sidebar() {

@@ -29,6 +29,7 @@ from app.api.routes.atlas_intelligence import router as atlas_intelligence_route
 from app.api.routes.compliance_assessment import router as compliance_assessment_router
 from app.api.routes.governance import router as governance_router
 from app.api.routes.ai_query import router as ai_query_router
+from app.api.routes.auth import router as auth_router
 from app.pipeline.core.orchestrator import PipelineOrchestrator
 from app.scheduler.tasks import (
     delete_connector,
@@ -128,6 +129,7 @@ app.include_router(atlas_intelligence_router)  # Phase 5: Airbyte Integration
 app.include_router(compliance_assessment_router)  # Phase 0: EU AI Act
 app.include_router(governance_router)  # Phase 0: RBAC
 app.include_router(ai_query_router)  # NEW: AI Query API for agents
+app.include_router(auth_router)  # NEW: Client Authentication & API Keys
 
 # In-memory storage (fallback when DB not available)
 pipeline_runs: dict[str, dict[str, Any]] = {}

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams } from 'react-router-dom';
 import {
   Search,
   Database,
@@ -37,9 +36,6 @@ const SOURCE_TYPES = [
 ];
 
 export default function DataCatalog() {
-  const [searchParams] = useSearchParams();
-  const runIdFromUrl = searchParams.get('run_id');
-
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedSourceType, setSelectedSourceType] = useState<string>('all');

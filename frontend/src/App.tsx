@@ -12,6 +12,7 @@ import FeatureStore from './pages/FeatureStore';
 import GDPR from './pages/GDPR';
 import Lineage from './pages/Lineage';
 import AtlasIntelligence from './pages/AtlasIntelligence';
+import AIQuery from './pages/AIQuery';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="gdpr" element={<GDPR />} />
             <Route path="lineage" element={<Lineage />} />
             <Route path="atlas-intelligence" element={<AtlasIntelligence />} />
+            <Route path="ai-query" element={<AIQuery />} />
           </Route>
         </Routes>
       </BrowserRouter>
