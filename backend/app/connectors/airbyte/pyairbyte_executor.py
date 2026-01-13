@@ -160,6 +160,122 @@ class PyAirbyteExecutor:
         "source-bitbucket": {"category": "development", "name": "Bitbucket"},
         "source-datadog": {"category": "development", "name": "Datadog"},
         "source-sentry": {"category": "development", "name": "Sentry"},
+        "source-circleci": {"category": "development", "name": "CircleCI"},
+        "source-jenkins": {"category": "development", "name": "Jenkins"},
+        "source-sonarqube": {"category": "development", "name": "SonarQube"},
+        "source-launchdarkly": {"category": "development", "name": "LaunchDarkly"},
+
+        # Social Media
+        "source-instagram": {"category": "social", "name": "Instagram"},
+        "source-tiktok-marketing": {"category": "social", "name": "TikTok Ads"},
+        "source-twitter": {"category": "social", "name": "Twitter/X"},
+        "source-youtube-analytics": {"category": "social", "name": "YouTube Analytics"},
+        "source-pinterest": {"category": "social", "name": "Pinterest"},
+        "source-snapchat-marketing": {"category": "social", "name": "Snapchat Ads"},
+        "source-reddit": {"category": "social", "name": "Reddit"},
+        "source-twitch": {"category": "social", "name": "Twitch"},
+
+        # Cloud Infrastructure
+        "source-aws-cloudtrail": {"category": "cloud", "name": "AWS CloudTrail"},
+        "source-amazon-sqs": {"category": "cloud", "name": "Amazon SQS"},
+        "source-amazon-kinesis": {"category": "cloud", "name": "Amazon Kinesis"},
+        "source-azure-table": {"category": "cloud", "name": "Azure Table Storage"},
+        "source-google-pubsub": {"category": "cloud", "name": "Google Pub/Sub"},
+        "source-firebase-realtime-database": {"category": "cloud", "name": "Firebase Realtime DB"},
+        "source-dynamodb": {"category": "cloud", "name": "Amazon DynamoDB"},
+        "source-elasticsearch": {"category": "cloud", "name": "Elasticsearch"},
+
+        # Business Intelligence
+        "source-metabase": {"category": "bi", "name": "Metabase"},
+        "source-looker": {"category": "bi", "name": "Looker"},
+        "source-tableau": {"category": "bi", "name": "Tableau"},
+        "source-dbt-cloud": {"category": "bi", "name": "dbt Cloud"},
+        "source-mode": {"category": "bi", "name": "Mode Analytics"},
+        "source-sigma": {"category": "bi", "name": "Sigma Computing"},
+
+        # DevOps & Monitoring
+        "source-pagerduty": {"category": "devops", "name": "PagerDuty"},
+        "source-newrelic": {"category": "devops", "name": "New Relic"},
+        "source-opsgenie": {"category": "devops", "name": "Opsgenie"},
+        "source-statuspage": {"category": "devops", "name": "Statuspage"},
+        "source-victorops": {"category": "devops", "name": "VictorOps"},
+        "source-instatus": {"category": "devops", "name": "Instatus"},
+
+        # Customer Data Platforms
+        "source-customerio": {"category": "cdp", "name": "Customer.io"},
+        "source-rudderstack": {"category": "cdp", "name": "RudderStack"},
+        "source-appsflyer": {"category": "cdp", "name": "AppsFlyer"},
+        "source-adjust": {"category": "cdp", "name": "Adjust"},
+        "source-branch": {"category": "cdp", "name": "Branch"},
+        "source-mparticle": {"category": "cdp", "name": "mParticle"},
+
+        # Forms & Surveys
+        "source-typeform": {"category": "forms", "name": "Typeform"},
+        "source-surveymonkey": {"category": "forms", "name": "SurveyMonkey"},
+        "source-jotform": {"category": "forms", "name": "JotForm"},
+        "source-google-forms": {"category": "forms", "name": "Google Forms"},
+        "source-airtable": {"category": "forms", "name": "Airtable"},
+
+        # Legal & Contracts
+        "source-docusign": {"category": "legal", "name": "DocuSign"},
+        "source-hellosign": {"category": "legal", "name": "HelloSign"},
+        "source-pandadoc": {"category": "legal", "name": "PandaDoc"},
+        "source-clio": {"category": "legal", "name": "Clio"},
+
+        # Event & Ticketing
+        "source-eventbrite": {"category": "events", "name": "Eventbrite"},
+        "source-ticketmaster": {"category": "events", "name": "Ticketmaster"},
+        "source-calendly": {"category": "events", "name": "Calendly"},
+        "source-zoom": {"category": "events", "name": "Zoom"},
+
+        # Education
+        "source-canvas": {"category": "education", "name": "Canvas LMS"},
+        "source-blackboard": {"category": "education", "name": "Blackboard"},
+        "source-google-classroom": {"category": "education", "name": "Google Classroom"},
+        "source-coursera": {"category": "education", "name": "Coursera"},
+
+        # Real Estate & Property
+        "source-yardi": {"category": "realestate", "name": "Yardi"},
+        "source-appfolio": {"category": "realestate", "name": "AppFolio"},
+        "source-buildium": {"category": "realestate", "name": "Buildium"},
+
+        # Healthcare
+        "source-athenahealth": {"category": "healthcare", "name": "athenahealth"},
+        "source-epic-fhir": {"category": "healthcare", "name": "Epic FHIR"},
+        "source-allscripts": {"category": "healthcare", "name": "Allscripts"},
+        "source-cerner-fhir": {"category": "healthcare", "name": "Cerner FHIR"},
+
+        # Logistics & Shipping
+        "source-shipstation": {"category": "logistics", "name": "ShipStation"},
+        "source-shippo": {"category": "logistics", "name": "Shippo"},
+        "source-easypost": {"category": "logistics", "name": "EasyPost"},
+        "source-aftership": {"category": "logistics", "name": "AfterShip"},
+
+        # Productivity & Office
+        "source-microsoft-teams": {"category": "productivity", "name": "Microsoft Teams"},
+        "source-office365": {"category": "productivity", "name": "Office 365"},
+        "source-outlook": {"category": "productivity", "name": "Outlook"},
+        "source-onenote": {"category": "productivity", "name": "OneNote"},
+        "source-sharepoint": {"category": "productivity", "name": "SharePoint"},
+        "source-confluence": {"category": "productivity", "name": "Confluence"},
+
+        # Advertising Networks
+        "source-amazon-ads": {"category": "advertising", "name": "Amazon Ads"},
+        "source-bing-ads": {"category": "advertising", "name": "Microsoft Ads"},
+        "source-outbrain": {"category": "advertising", "name": "Outbrain"},
+        "source-taboola": {"category": "advertising", "name": "Taboola"},
+        "source-criteo": {"category": "advertising", "name": "Criteo"},
+        "source-applovin": {"category": "advertising", "name": "AppLovin"},
+
+        # Government & Public Data
+        "source-us-census": {"category": "government", "name": "US Census"},
+        "source-open-exchange-rates": {"category": "government", "name": "Exchange Rates"},
+        "source-currencylayer": {"category": "government", "name": "Currency Layer"},
+
+        # Weather & Location
+        "source-openweathermap": {"category": "weather", "name": "OpenWeatherMap"},
+        "source-weatherstack": {"category": "weather", "name": "Weatherstack"},
+        "source-ip-info": {"category": "weather", "name": "IP Info"},
     }
 
     def __init__(self, cache_dir: Optional[Path] = None):
