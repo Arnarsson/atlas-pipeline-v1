@@ -8,7 +8,6 @@ import {
   Clock,
   AlertCircle,
   Loader2,
-  Trash2,
   Eye,
   RefreshCw,
 } from 'lucide-react';

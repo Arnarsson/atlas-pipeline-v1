@@ -7,7 +7,6 @@ import {
   AlertTriangle,
   User,
   FileText,
-  Eye,
   History,
   RefreshCw,
   Filter,
@@ -83,12 +82,6 @@ async function fetchPendingDecisions(filters: {
 
   const response = await fetch(`${API_BASE}/decisions/pending?${params}`);
   if (!response.ok) throw new Error('Failed to fetch decisions');
-  return response.json();
-}
-
-async function fetchDecision(id: string): Promise<Decision> {
-  const response = await fetch(`${API_BASE}/decisions/${id}`);
-  if (!response.ok) throw new Error('Failed to fetch decision');
   return response.json();
 }
 
