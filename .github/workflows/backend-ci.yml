@@ -107,7 +107,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install pytest pytest-asyncio pytest-cov httpx
           pip install -r requirements-simple.txt
-          pip install aiomysql asyncpg presidio-analyzer presidio-anonymizer soda-core-postgres celery tenacity redis google-auth google-api-python-client prometheus-client
+          pip install soda-core-postgres || true
 
       - name: Create .env file
         run: |
@@ -123,7 +123,7 @@ jobs:
           FIRST_SUPERUSER_PASSWORD=testpass123
           DATABASE_URL=postgresql://atlas_user:atlas_password@localhost:5432/atlas_pipeline_test
           REDIS_URL=redis://localhost:6379/0
-          ENVIRONMENT=test
+          ENVIRONMENT=local
           EOF
 
       - name: Run tests with coverage

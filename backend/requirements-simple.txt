@@ -45,3 +45,26 @@ beautifulsoup4>=4.12.0  # HTML table parsing
 # Report Generation (Sprint 2)
 reportlab>=4.0.0  # PDF generation
 openpyxl>=3.1.0  # Excel generation
+
+# Monitoring & Observability
+sentry-sdk>=1.0.0,<3.0.0  # Error tracking
+prometheus-client>=0.19.0,<1.0.0  # Prometheus metrics
+prometheus-fastapi-instrumentator>=6.0.0,<7.0.0  # FastAPI Prometheus integration
+
+# PII Detection & Quality (used in tests)
+presidio-analyzer>=2.2.0  # PII detection
+presidio-anonymizer>=2.2.0  # PII anonymization
+
+# Async MySQL support
+aiomysql>=0.2.0  # Async MySQL driver
+
+# Task scheduling
+celery>=5.3.0,<6.0.0  # Task queue
+redis>=5.0.0,<6.0.0  # Redis client
+
+# Retry logic
+tenacity>=8.2.0,<9.0.0  # Retry decorator
+
+# Google APIs (for connectors)
+google-auth>=2.0.0,<3.0.0  # Google authentication
+google-api-python-client>=2.0.0,<3.0.0  # Google API client
