@@ -932,3 +932,355 @@ async def trigger_scheduled_sync(schedule_id: str) -> Dict[str, Any]:
         "status": "triggered",
         "job": job.to_dict()
     }
+
+
+# ============================================================================
+# Docker-based Airbyte Execution (Production Mode)
+# ============================================================================
+# These endpoints use official Airbyte Docker images for connector execution.
+# Requires Docker to be installed and running.
+
+from app.connectors.airbyte import (
+    # Registry
+    list_connectors as list_docker_connectors,
+    search_connectors as search_docker_connectors,
+    get_connector_info,
+    get_connector_count,
+    get_category_counts,
+    ConnectorCategory,
+    # Docker execution
+    AirbyteDockerExecutor,
+    get_docker_executor,
+    check_docker_available,
+    pull_image,
+    ExecutorConfig,
+    # Adapter
+    AirbyteSourceAdapter,
+    create_airbyte_adapter,
+)
+from app.connectors.base import ConnectionConfig
+
+
+class DockerConnectorConfigRequest(BaseModel):
+    """Request to configure a Docker-based Airbyte connector."""
+    connector_name: str = Field(..., description="Connector name (e.g., 'source-postgres')")
+    config: Dict[str, Any] = Field(..., description="Connector configuration")
+    source_name: Optional[str] = Field(None, description="Optional display name")
+
+
+class DockerReadRequest(BaseModel):
+    """Request to read data from a Docker-based connector."""
+    connector_name: str
+    config: Dict[str, Any]
+    stream_name: str
+    incremental: bool = False
+    cursor_field: Optional[str] = None
+    state: Optional[Dict[str, Any]] = None
+
+
+@router.get("/docker/health")
+async def get_docker_health() -> Dict[str, Any]:
+    """Check if Docker is available for Airbyte connector execution."""
+    is_available = await check_docker_available()
+
+    return {
+        "docker_available": is_available,
+        "status": "healthy" if is_available else "docker_not_running",
+        "message": "Docker is ready for Airbyte connector execution" if is_available
+                   else "Docker is not available. Install and start Docker to use 100+ Airbyte connectors.",
+        "total_connectors": get_connector_count(),
+        "execution_mode": "docker"
+    }
+
+
+@router.get("/docker/connectors")
+async def list_docker_airbyte_connectors(
+    category: Optional[str] = Query(None, description="Filter by category"),
+    search: Optional[str] = Query(None, description="Search connectors by name")
+) -> Dict[str, Any]:
+    """List all available Docker-based Airbyte connectors (100+)."""
+    if search:
+        connectors = search_docker_connectors(search)
+    elif category:
+        try:
+            cat = ConnectorCategory(category)
+            connectors = list_docker_connectors(category=cat)
+        except ValueError:
+            connectors = list_docker_connectors()
+    else:
+        connectors = list_docker_connectors()
+
+    return {
+        "connectors": [
+            {
+                "id": c.name,
+                "name": c.display_name,
+                "category": c.category.value,
+                "docker_image": c.docker_image,
+                "supports_incremental": c.supports_incremental,
+                "documentation_url": c.documentation_url,
+                "type": "docker"
+            }
+            for c in connectors
+        ],
+        "total": len(connectors),
+        "execution_mode": "docker"
+    }
+
+
+@router.get("/docker/connectors/{connector_name}")
+async def get_docker_connector_info(connector_name: str) -> Dict[str, Any]:
+    """Get detailed information about a Docker-based connector."""
+    info = get_connector_info(connector_name)
+
+    if not info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Connector '{connector_name}' not found in registry"
+        )
+
+    return {
+        "id": info.name,
+        "name": info.display_name,
+        "category": info.category.value,
+        "docker_image": info.docker_image,
+        "supports_incremental": info.supports_incremental,
+        "supports_normalization": info.supports_normalization,
+        "documentation_url": info.documentation_url,
+        "type": "docker"
+    }
+
+
+@router.get("/docker/categories")
+async def get_docker_connector_categories() -> Dict[str, Any]:
+    """Get available connector categories with counts."""
+    counts = get_category_counts()
+
+    return {
+        "categories": [
+            {
+                "id": cat,
+                "name": cat.replace("_", " ").title(),
+                "count": count
+            }
+            for cat, count in sorted(counts.items(), key=lambda x: -x[1])
+        ],
+        "total_connectors": get_connector_count()
+    }
+
+
+@router.post("/docker/connectors/{connector_name}/pull")
+async def pull_connector_image(connector_name: str, force: bool = False) -> Dict[str, Any]:
+    """Pull the Docker image for a connector."""
+    info = get_connector_info(connector_name)
+
+    if not info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Connector '{connector_name}' not found"
+        )
+
+    # Check Docker availability first
+    if not await check_docker_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Docker is not available. Please start Docker."
+        )
+
+    success = await pull_image(info.docker_image, force=force)
+
+    return {
+        "status": "pulled" if success else "failed",
+        "connector_name": connector_name,
+        "docker_image": info.docker_image,
+        "message": f"Image {info.docker_image} pulled successfully" if success
+                   else f"Failed to pull image {info.docker_image}"
+    }
+
+
+@router.get("/docker/connectors/{connector_name}/spec")
+async def get_docker_connector_spec(connector_name: str) -> Dict[str, Any]:
+    """Get the configuration specification for a connector via Docker SPEC command."""
+    info = get_connector_info(connector_name)
+
+    if not info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Connector '{connector_name}' not found"
+        )
+
+    if not await check_docker_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Docker is not available"
+        )
+
+    try:
+        executor = get_docker_executor()
+        spec = await executor.spec(info.docker_image)
+
+        return {
+            "connector_name": connector_name,
+            "docker_image": info.docker_image,
+            "spec": {
+                "documentation_url": spec.documentationUrl,
+                "connection_specification": spec.connectionSpecification,
+                "supports_incremental": spec.supportsIncremental,
+                "supports_normalization": spec.supportsNormalization,
+            }
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get spec: {str(e)}"
+        )
+
+
+@router.post("/docker/check")
+async def check_docker_connection(request: DockerConnectorConfigRequest) -> Dict[str, Any]:
+    """Test a connection using Docker CHECK command."""
+    info = get_connector_info(request.connector_name)
+
+    if not info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Connector '{request.connector_name}' not found"
+        )
+
+    if not await check_docker_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Docker is not available"
+        )
+
+    try:
+        executor = get_docker_executor()
+        status = await executor.check(info.docker_image, request.config)
+
+        return {
+            "status": status.status.value.lower(),
+            "message": status.message,
+            "connector_name": request.connector_name,
+            "docker_image": info.docker_image,
+            "success": status.status.value == "SUCCEEDED"
+        }
+    except Exception as e:
+        return {
+            "status": "failed",
+            "message": str(e),
+            "connector_name": request.connector_name,
+            "success": False
+        }
+
+
+@router.post("/docker/discover")
+async def discover_docker_streams(request: DockerConnectorConfigRequest) -> Dict[str, Any]:
+    """Discover available streams using Docker DISCOVER command."""
+    info = get_connector_info(request.connector_name)
+
+    if not info:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Connector '{request.connector_name}' not found"
+        )
+
+    if not await check_docker_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Docker is not available"
+        )
+
+    try:
+        executor = get_docker_executor()
+        catalog = await executor.discover(info.docker_image, request.config)
+
+        return {
+            "connector_name": request.connector_name,
+            "streams": [
+                {
+                    "name": stream.name,
+                    "namespace": stream.namespace,
+                    "supported_sync_modes": [m.value for m in stream.supported_sync_modes],
+                    "source_defined_cursor": stream.source_defined_cursor,
+                    "default_cursor_field": stream.default_cursor_field,
+                    "primary_key": stream.source_defined_primary_key,
+                    "json_schema": stream.json_schema
+                }
+                for stream in catalog.streams
+            ],
+            "total_streams": len(catalog.streams)
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Discovery failed: {str(e)}"
+        )
+
+
+@router.post("/docker/read")
+async def read_docker_stream(request: DockerReadRequest) -> Dict[str, Any]:
+    """Read data from a connector using Docker READ command."""
+    if not await check_docker_available():
+        raise HTTPException(
+            status_code=503,
+            detail="Docker is not available"
+        )
+
+    try:
+        adapter = create_airbyte_adapter(
+            request.connector_name,
+            request.config,
+            source_name=request.connector_name
+        )
+
+        # Set state if provided
+        if request.state:
+            adapter.set_state(request.stream_name, request.state)
+
+        df = await adapter.get_data(
+            table=request.stream_name,
+            incremental=request.incremental,
+            timestamp_column=request.cursor_field
+        )
+
+        # Get new state after sync
+        new_state = adapter.get_state(request.stream_name)
+
+        await adapter.close()
+
+        return {
+            "status": "success",
+            "connector_name": request.connector_name,
+            "stream_name": request.stream_name,
+            "records_count": len(df),
+            "columns": list(df.columns),
+            "data": df.head(100).to_dict(orient="records"),  # Return first 100 records
+            "state": new_state,
+            "message": f"Read {len(df)} records from {request.stream_name}"
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Read failed: {str(e)}"
+        )
+
+
+@router.get("/docker/stats")
+async def get_docker_connector_stats() -> Dict[str, Any]:
+    """Get statistics about Docker-based connectors."""
+    is_docker_available = await check_docker_available()
+    counts = get_category_counts()
+
+    return {
+        "docker_available": is_docker_available,
+        "total_connectors": get_connector_count(),
+        "categories": counts,
+        "top_categories": sorted(
+            [{"name": k, "count": v} for k, v in counts.items()],
+            key=lambda x: -x["count"]
+        )[:5],
+        "execution_mode": "docker",
+        "status": "ready" if is_docker_available else "docker_required"
+    }
