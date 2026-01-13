@@ -1,19 +1,38 @@
-# Simplified requirements for working API - no complex dependencies
+# Atlas Data Pipeline Requirements
+# Production-ready with database persistence, AI/RAG, and audit logging
+
+# Core Framework
 fastapi[standard]>=0.109.0,<1.0.0
 uvicorn[standard]>=0.25.0,<1.0.0
 python-multipart>=0.0.7,<1.0.0
 httpx>=0.25.1,<1.0.0
-sqlalchemy>=2.0.0,<3.0.0
-sqlmodel>=0.0.21,<1.0.0
-psycopg[binary]>=3.1.13,<4.0.0
-pandas>=2.2.0,<3.0.0
 pydantic>=2.5.0,<3.0.0
 pydantic-settings>=2.2.1,<3.0.0
 python-dotenv>=1.0.0,<2.0.0
 loguru>=0.7.0,<1.0.0
+
+# Database (PostgreSQL with async support)
+asyncpg>=0.29.0,<1.0.0  # Async PostgreSQL driver
+sqlalchemy>=2.0.0,<3.0.0
+sqlmodel>=0.0.21,<1.0.0
+psycopg[binary]>=3.1.13,<4.0.0
+
+# Data Processing
+pandas>=2.2.0,<3.0.0
+numpy>=1.26.0,<3.0.0
+
+# Authentication
 email-validator>=2.1.0,<3.0.0
 pyjwt>=2.8.0,<3.0.0
 passlib[bcrypt]>=1.7.4,<2.0.0
 bcrypt==4.3.0
 python-jose[cryptography]>=3.3.0,<4.0.0
+
+# Airbyte Integration (open source)
 airbyte>=0.20.0
+
+# AI/RAG (optional - for vector embeddings)
+sentence-transformers>=2.2.0,<3.0.0  # Local embeddings
+# openai>=1.0.0  # Uncomment for OpenAI embeddings
+# chromadb>=0.4.0  # Uncomment for Chroma vector store
+# langchain>=0.1.0  # Uncomment for LangChain integration
