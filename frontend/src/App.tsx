@@ -14,6 +14,14 @@ import Lineage from './pages/Lineage';
 import AtlasIntelligence from './pages/AtlasIntelligence';
 import Decisions from './pages/Decisions';
 import Inbox from './pages/Inbox';
+// New pages for Airbyte-style UI
+import SourceCatalog from './pages/SourceCatalog';
+import Connections from './pages/Connections';
+import SyncJobs from './pages/SyncJobs';
+import ConnectorHealth from './pages/ConnectorHealth';
+import Credentials from './pages/Credentials';
+import Schedules from './pages/Schedules';
+import RBAC from './pages/RBAC';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -34,11 +42,12 @@ export default function App() {
           toastOptions={{
             duration: 4000,
             style: {
-              background: '#1e3a8a',
-              color: '#fff',
-              fontWeight: '600',
-              borderRadius: '12px',
-              padding: '16px',
+              background: 'hsl(var(--card))',
+              color: 'hsl(var(--foreground))',
+              fontWeight: '500',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              border: '1px solid hsl(var(--border))',
             },
             success: {
               iconTheme: {
@@ -56,17 +65,35 @@ export default function App() {
         />
         <Routes>
           <Route path="/" element={<Layout />}>
+            {/* Home */}
             <Route index element={<Dashboard />} />
-            <Route path="upload" element={<Upload />} />
-            <Route path="connectors" element={<Connectors />} />
+
+            {/* Sources */}
+            <Route path="connections" element={<Connections />} />
+            <Route path="sources" element={<SourceCatalog />} />
+            <Route path="credentials" element={<Credentials />} />
+
+            {/* Syncs */}
+            <Route path="sync-jobs" element={<SyncJobs />} />
+            <Route path="schedules" element={<Schedules />} />
+            <Route path="health" element={<ConnectorHealth />} />
+
+            {/* Data */}
+            <Route path="catalog" element={<DataCatalog />} />
             <Route path="reports" element={<QualityReports />} />
             <Route path="pii" element={<PIIAnalysis />} />
-            <Route path="catalog" element={<DataCatalog />} />
-            <Route path="features" element={<FeatureStore />} />
-            <Route path="gdpr" element={<GDPR />} />
             <Route path="lineage" element={<Lineage />} />
-            <Route path="atlas-intelligence" element={<AtlasIntelligence />} />
+            <Route path="features" element={<FeatureStore />} />
+
+            {/* Governance */}
+            <Route path="gdpr" element={<GDPR />} />
             <Route path="decisions" element={<Decisions />} />
+            <Route path="rbac" element={<RBAC />} />
+
+            {/* Legacy routes (keep for backwards compatibility) */}
+            <Route path="upload" element={<Upload />} />
+            <Route path="connectors" element={<Connectors />} />
+            <Route path="atlas-intelligence" element={<AtlasIntelligence />} />
             <Route path="inbox" element={<Inbox />} />
           </Route>
         </Routes>
