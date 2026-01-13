@@ -15,6 +15,7 @@ import {
   CheckCircle,
   Inbox,
   BarChart3,
+  Cable,
 } from 'lucide-react';
 
 interface NavItem {
@@ -26,6 +27,7 @@ interface NavItem {
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
+  { name: 'Connections', href: '/connections', icon: Cable },
   { name: 'Inbox', href: '/inbox', icon: Inbox },
   { name: 'Upload', href: '/upload', icon: Upload },
   {

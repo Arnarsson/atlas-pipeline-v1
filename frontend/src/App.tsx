@@ -12,6 +12,7 @@ import FeatureStore from './pages/FeatureStore';
 import GDPR from './pages/GDPR';
 import Lineage from './pages/Lineage';
 import AtlasIntelligence from './pages/AtlasIntelligence';
+import Connections from './pages/Connections';
 import Decisions from './pages/Decisions';
 import Inbox from './pages/Inbox';
 import KPIDashboard from './pages/KPIDashboard';
@@ -67,6 +68,7 @@ export default function App() {
             <Route path="gdpr" element={<GDPR />} />
             <Route path="lineage" element={<Lineage />} />
             <Route path="atlas-intelligence" element={<AtlasIntelligence />} />
+            <Route path="connections" element={<Connections />} />
             <Route path="decisions" element={<Decisions />} />
             <Route path="inbox" element={<Inbox />} />
             <Route path="kpi" element={<KPIDashboard />} />
