@@ -33,6 +33,13 @@
   - State management for incremental syncs
   - Sync job scheduler with cron support
   - Performance optimization for large syncs (>1M records)
+- **Airbyte-Style UI Redesign** - COMPLETE ✅ (January 13, 2026)
+  - 7 new pages: SourceCatalog, Connections, SyncJobs, ConnectorHealth, Credentials, Schedules, RBAC
+  - Grouped sidebar navigation (SOURCES, SYNCS, DATA, GOVERNANCE)
+  - Command center dashboard with live sync activity
+  - 300+ connector marketplace (SourceCatalog)
+  - Real-time sync job monitoring with progress bars
+  - KPI Dashboard with before/after metrics
 - UI Redesign: Linear/Vercel aesthetic with shadcn/ui
 - Dark mode support with CSS variables
 
@@ -41,7 +48,7 @@
 atlas-dashboard/
 ├── backend/          # FastAPI + Python pipeline (in atlas-api worktree)
 ├── frontend/         # React + TypeScript dashboard
-│   ├── src/          # Source code (9 pages, shadcn components)
+│   ├── src/          # Source code (16 pages, shadcn components)
 │   ├── tests/e2e/    # Playwright tests (20 spec files)
 │   └── CLAUDE.md     # Frontend-specific docs
 ├── docs/             # Documentation
@@ -577,6 +584,54 @@ class AirbyteMessageType(str, Enum):
 - Explore → Chart → Navigate flow
 - Transformation labels
 - Color-coded layers
+
+### **10. Source Catalog (`/sources`)** - NEW
+- 300+ connector marketplace grid
+- Category filtering (Databases, CRM, Marketing, etc.)
+- Search functionality
+- Popular/recommended section
+- One-click "Connect" button
+
+### **11. Connections (`/connections`)** - NEW
+- Active data pipelines list
+- Status indicators (active, syncing, paused, error)
+- Sync mode badges (Full Refresh, Incremental, CDC)
+- Actions: Sync Now, Pause, Settings, Delete
+- Last/next sync times
+
+### **12. Sync Jobs (`/sync-jobs`)** - NEW
+- Running jobs with live progress bars
+- Expandable job details with stream breakdown
+- Status filtering
+- Date range grouping
+
+### **13. Connector Health (`/health`)** - NEW
+- System status overview
+- Latency and uptime metrics
+- Health status table per connector
+- Error rate tracking
+
+### **14. Credentials (`/credentials`)** - NEW
+- API key list with visibility toggle
+- Test connection button
+- Security information
+- Create new credentials
+
+### **15. Schedules (`/schedules`)** - NEW
+- Cron schedule management
+- Toggle enable/disable
+- Run now button
+- Next/last run times
+
+### **16. RBAC (`/rbac`)** - NEW
+- Role list with permissions
+- User counts per role
+- Enterprise feature placeholder
+
+### **17. KPI Dashboard (`/kpi`)** - NEW
+- Before/after metrics visualization
+- Key performance indicators
+- Progress tracking
 
 ---
 
