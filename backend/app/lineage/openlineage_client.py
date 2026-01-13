@@ -100,9 +100,9 @@ class DataSourceDatasetFacet:
     """Data source facet for dataset."""
 
     _producer: str
-    _schemaURL: str = "https://openlineage.io/spec/facets/1-0-0/DatasourceDatasetFacet.json"
     name: str
     uri: str
+    _schemaURL: str = "https://openlineage.io/spec/facets/1-0-0/DatasourceDatasetFacet.json"
 
 
 @dataclass

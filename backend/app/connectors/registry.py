@@ -4,24 +4,39 @@ from typing import Dict, List, Type
 import logging
 
 from app.connectors.base import SourceConnector
-from app.connectors.mysql import MySQLConnector
-from app.connectors.postgresql import PostgreSQLConnector
-from app.connectors.rest_api import RESTAPIConnector
 
 logger = logging.getLogger(__name__)
 
 # Optional connectors with graceful fallback
+MySQLConnector = None
+PostgreSQLConnector = None
+RESTAPIConnector = None
 GoogleSheetsConnector = None
 SalesforceConnector = None
 
 try:
+    from app.connectors.mysql import MySQLConnector
+except (ImportError, Exception) as e:
+    logger.warning(f"MySQL connector not available: {e}")
+
+try:
+    from app.connectors.postgresql import PostgreSQLConnector
+except (ImportError, Exception) as e:
+    logger.warning(f"PostgreSQL connector not available: {e}")
+
+try:
+    from app.connectors.rest_api import RESTAPIConnector
+except (ImportError, Exception) as e:
+    logger.warning(f"REST API connector not available: {e}")
+
+try:
     from app.connectors.google_sheets import GoogleSheetsConnector
-except ImportError as e:
+except (ImportError, Exception) as e:
     logger.warning(f"Google Sheets connector not available: {e}")
 
 try:
     from app.connectors.salesforce import SalesforceConnector
-except ImportError as e:
+except (ImportError, Exception) as e:
     logger.warning(f"Salesforce connector not available: {e}")
 
 
@@ -34,13 +49,15 @@ class ConnectorRegistry:
     - Validate connector configurations
     """
 
-    _connectors: Dict[str, Type[SourceConnector]] = {
-        "postgresql": PostgreSQLConnector,
-        "mysql": MySQLConnector,
-        "rest_api": RESTAPIConnector,
-    }
+    _connectors: Dict[str, Type[SourceConnector]] = {}
 
-    # Add optional connectors if available
+    # Add connectors if available
+    if PostgreSQLConnector is not None:
+        _connectors["postgresql"] = PostgreSQLConnector
+    if MySQLConnector is not None:
+        _connectors["mysql"] = MySQLConnector
+    if RESTAPIConnector is not None:
+        _connectors["rest_api"] = RESTAPIConnector
     if GoogleSheetsConnector is not None:
         _connectors["google_sheets"] = GoogleSheetsConnector
     if SalesforceConnector is not None:

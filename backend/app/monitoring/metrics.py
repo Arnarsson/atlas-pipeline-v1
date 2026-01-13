@@ -259,10 +259,12 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
 
         # Track request duration
         start_time = time.time()
+        status = 500  # Default to error status
 
         try:
             response = await call_next(request)
             status = response.status_code
+            return response
 
         except Exception as e:
             # Track errors
@@ -291,8 +293,6 @@ class PrometheusMiddleware(BaseHTTPMiddleware):
                 method=method,
                 endpoint=endpoint
             ).dec()
-
-        return response
 
 
 def metrics_middleware():

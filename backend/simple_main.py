@@ -13,6 +13,8 @@ from app.monitoring.health import router as health_router
 from app.monitoring.metrics import get_metrics, get_metrics_content_type, metrics_middleware
 from app.api.routes.enhanced_catalog import router as enhanced_catalog_router
 from app.api.routes.atlas_intelligence import router as atlas_intelligence_router
+from app.api.routes.compliance_assessment import router as compliance_assessment_router
+from app.api.routes.governance import router as governance_router
 from app.pipeline.core.orchestrator import PipelineOrchestrator
 from app.scheduler.tasks import (
     delete_connector,
@@ -51,6 +53,12 @@ app.include_router(enhanced_catalog_router)
 
 # Include AtlasIntelligence router (Phase 5)
 app.include_router(atlas_intelligence_router)
+
+# Include EU AI Act Compliance router (Phase 0)
+app.include_router(compliance_assessment_router)
+
+# Include Governance RBAC router (Phase 0)
+app.include_router(governance_router)
 
 # In-memory storage
 pipeline_runs: dict[str, dict[str, Any]] = {}
