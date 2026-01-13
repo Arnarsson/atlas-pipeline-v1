@@ -14,6 +14,7 @@ import {
   ChevronDown,
   CheckCircle,
   Inbox,
+  BarChart3,
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,6 +44,7 @@ const navigation: NavItem[] = [
   { name: 'GDPR', href: '/gdpr', icon: Shield },
   { name: 'Lineage', href: '/lineage', icon: GitBranch },
   { name: 'Decisions', href: '/decisions', icon: CheckCircle },
+  { name: 'KPI', href: '/kpi', icon: BarChart3 },
 ];
 
 export default function Sidebar() {
