@@ -1,43 +1,41 @@
-FROM python:3.10
+# Atlas Data Pipeline Backend
+FROM python:3.12-slim
 
 ENV PYTHONUNBUFFERED=1
-
-WORKDIR /app/
-
-# Install uv via pip (no GitHub auth required)
-RUN pip install --no-cache-dir uv==0.5.11
-
-# Place executables in the environment at the front of the path
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#using-the-environment
-ENV PATH="/app/.venv/bin:$PATH"
-
-# Compile bytecode
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#compiling-bytecode
-ENV UV_COMPILE_BYTECODE=1
-
-# uv Cache
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#caching
-ENV UV_LINK_MODE=copy
-
-# Install dependencies
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    uv sync --frozen --no-install-project
-
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
-COPY ./scripts /app/scripts
+WORKDIR /app
 
-COPY ./pyproject.toml ./uv.lock ./alembic.ini /app/
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
 
+# Copy requirements first for better caching
+COPY requirements-ci.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements-ci.txt
+
+# Copy application code
 COPY ./app /app/app
-COPY ./tests /app/tests
+COPY ./scripts /app/scripts
+COPY ./alembic.ini /app/
 
-# Sync the project
-# Ref: https://docs.astral.sh/uv/guides/integration/docker/#intermediate-layers
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync
+# Create non-root user for security
+RUN adduser --disabled-password --gecos '' --uid 1000 atlas && \
+    chown -R atlas:atlas /app
+USER atlas
 
-CMD ["fastapi", "run", "--workers", "4", "app/main.py"]
+# Expose port
+EXPOSE 8000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8000/health/live', timeout=5)" || exit 1
+
+# Run with uvicorn
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "4"]
