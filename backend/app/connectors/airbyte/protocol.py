@@ -66,10 +66,11 @@ class AirbyteConnectionStatus(str, Enum):
 
 
 class SyncMode(str, Enum):
-    """Supported sync modes."""
+    """Supported sync modes (Fivetran/Airbyte-style)."""
 
     FULL_REFRESH = "full_refresh"
     INCREMENTAL = "incremental"
+    CDC = "cdc"  # Change Data Capture - Fivetran/Airbyte style
 
 
 class DestinationSyncMode(str, Enum):
@@ -78,6 +79,16 @@ class DestinationSyncMode(str, Enum):
     APPEND = "append"
     OVERWRITE = "overwrite"
     APPEND_DEDUP = "append_dedup"
+
+
+class CDCOperation(str, Enum):
+    """CDC operation types (Fivetran/Airbyte-style)."""
+
+    INSERT = "c"    # Create/Insert - Debezium convention
+    UPDATE = "u"    # Update
+    DELETE = "d"    # Delete
+    READ = "r"      # Snapshot read (initial load)
+    TRUNCATE = "t"  # Truncate table
 
 
 class AirbyteTraceType(str, Enum):

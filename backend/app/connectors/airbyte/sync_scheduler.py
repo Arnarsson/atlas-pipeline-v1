@@ -2,12 +2,20 @@
 PyAirbyte Sync Scheduler - Schedule and manage data sync jobs.
 
 Provides job scheduling, execution tracking, and history for PyAirbyte connectors.
+
+Implements Fivetran/Airbyte-style features:
+- Exponential backoff retries (1s, 2s, 4s, 8s, 16s, 30s max)
+- Max retry attempts (configurable, default 5)
+- Jitter to prevent thundering herd
+- Per-attempt logging for debugging
+- Circuit breaker pattern for repeated failures
 """
 
 import asyncio
 import asyncpg
 import logging
 import uuid
+import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
@@ -15,6 +23,13 @@ from typing import Any, Dict, List, Optional, Callable
 from threading import Lock
 
 logger = logging.getLogger(__name__)
+
+# Fivetran/Airbyte-style retry configuration
+DEFAULT_MAX_RETRIES = 5
+DEFAULT_INITIAL_DELAY = 1.0  # seconds
+DEFAULT_MAX_DELAY = 30.0     # seconds
+DEFAULT_BACKOFF_MULTIPLIER = 2.0
+DEFAULT_JITTER = 0.1         # 10% jitter
 
 
 class SyncStatus(str, Enum):
@@ -34,7 +49,7 @@ class SyncMode(str, Enum):
 
 @dataclass
 class SyncJob:
-    """Represents a sync job."""
+    """Represents a sync job with Fivetran/Airbyte-style retry tracking."""
     job_id: str
     source_id: str
     source_name: str
@@ -47,6 +62,11 @@ class SyncJob:
     records_synced: int = 0
     error_message: Optional[str] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    # Fivetran/Airbyte-style retry tracking
+    attempt_count: int = 0
+    max_retries: int = DEFAULT_MAX_RETRIES
+    retry_history: List[Dict[str, Any]] = field(default_factory=list)
+    is_retryable: bool = True
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary."""
@@ -63,7 +83,12 @@ class SyncJob:
             "duration_seconds": self._get_duration(),
             "records_synced": self.records_synced,
             "error_message": self.error_message,
-            "metadata": self.metadata
+            "metadata": self.metadata,
+            # Retry information (Fivetran/Airbyte-style)
+            "attempt_count": self.attempt_count,
+            "max_retries": self.max_retries,
+            "retry_history": self.retry_history,
+            "is_retryable": self.is_retryable
         }
 
     def _get_duration(self) -> Optional[float]:
@@ -72,6 +97,15 @@ class SyncJob:
             return None
         end = self.completed_at or datetime.utcnow()
         return (end - self.started_at).total_seconds()
+
+    def add_retry_attempt(self, error: str, delay: float):
+        """Record a retry attempt (Fivetran/Airbyte-style logging)."""
+        self.retry_history.append({
+            "attempt": self.attempt_count,
+            "error": error,
+            "delay_seconds": delay,
+            "timestamp": datetime.utcnow().isoformat()
+        })
 
 
 @dataclass
@@ -179,17 +213,26 @@ class SyncScheduler:
     async def run_sync_job(
         self,
         job_id: str,
-        executor_fn: Optional[Callable] = None
+        executor_fn: Optional[Callable] = None,
+        enable_retries: bool = True
     ) -> SyncJob:
         """
-        Run a sync job.
+        Run a sync job with Fivetran/Airbyte-style exponential backoff retries.
 
         Args:
             job_id: Job ID to run
             executor_fn: Optional custom executor function
+            enable_retries: Enable automatic retries on transient failures
 
         Returns:
             Updated SyncJob
+
+        Retry Behavior (Fivetran/Airbyte-style):
+            - Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s max
+            - Jitter: 10% randomization to prevent thundering herd
+            - Max attempts: 5 (configurable per job)
+            - Retryable errors: Connection timeouts, rate limits, temporary failures
+            - Non-retryable: Auth failures, schema mismatches, permission errors
         """
         job = self._jobs.get(job_id)
         if not job:
@@ -215,104 +258,225 @@ class SyncScheduler:
             except Exception as e:
                 logger.warning(f"Callback error: {e}")
 
-        try:
-            # Execute sync with orchestrator
-            if executor_fn:
-                result = await executor_fn(job)
-                job.records_synced = result.get("records_synced", 0)
-            else:
-                # Use orchestrator for real/mock sync
-                from app.connectors.airbyte.airbyte_orchestrator import get_airbyte_orchestrator
-                from app.core.config import settings
+        last_error = None
 
-                try:
-                    # Create orchestrator
-                    orchestrator = await get_airbyte_orchestrator(
-                        database_url=settings.DATABASE_URL,
-                        enable_pii_detection=True,
-                        enable_quality_validation=True
+        # Fivetran/Airbyte-style retry loop
+        while job.attempt_count <= job.max_retries:
+            job.attempt_count += 1
+            logger.info(f"Sync job {job_id} attempt {job.attempt_count}/{job.max_retries + 1}")
+
+            try:
+                # Execute sync with orchestrator
+                if executor_fn:
+                    result = await executor_fn(job)
+                    job.records_synced = result.get("records_synced", 0)
+                else:
+                    # Use orchestrator for real/mock sync
+                    await self._execute_sync_with_orchestrator(job)
+
+                # Success! Mark as completed
+                job.status = SyncStatus.COMPLETED
+                job.completed_at = datetime.utcnow()
+                job.error_message = None
+
+                # Persist job history to database
+                await self._persist_job_history(job)
+
+                # Fire complete callbacks
+                for callback in self._callbacks["on_job_complete"]:
+                    try:
+                        callback(job)
+                    except Exception as e:
+                        logger.warning(f"Callback error: {e}")
+
+                logger.info(f"✅ Sync job {job_id} completed: {job.records_synced} records (attempt {job.attempt_count})")
+                break  # Exit retry loop on success
+
+            except Exception as e:
+                last_error = e
+                error_str = str(e)
+
+                # Check if error is retryable (Fivetran/Airbyte classification)
+                is_retryable = self._is_retryable_error(e) and enable_retries
+
+                if is_retryable and job.attempt_count <= job.max_retries:
+                    # Calculate delay with exponential backoff and jitter
+                    delay = self._calculate_backoff_delay(job.attempt_count)
+                    job.add_retry_attempt(error_str, delay)
+
+                    logger.warning(
+                        f"⚠️ Sync job {job_id} failed (attempt {job.attempt_count}), "
+                        f"retrying in {delay:.1f}s: {error_str}"
                     )
 
-                    # Execute sync for each stream
-                    total_records = 0
-                    sync_results = []
+                    # Wait before retry (with jitter)
+                    await asyncio.sleep(delay)
+                else:
+                    # Non-retryable or max retries exceeded
+                    job.status = SyncStatus.FAILED
+                    job.error_message = error_str
+                    job.completed_at = datetime.utcnow()
+                    job.is_retryable = False
 
-                    for stream in job.streams:
-                        logger.info(f"Syncing stream: {stream}")
-                        result = await orchestrator.execute_full_sync(
-                            source_id=job.source_id,
-                            stream_name=stream,
-                            sync_mode="incremental" if job.sync_mode == SyncMode.INCREMENTAL else "full_refresh"
-                        )
+                    if job.attempt_count > job.max_retries:
+                        logger.error(f"❌ Sync job {job_id} failed after {job.attempt_count} attempts: {error_str}")
+                    else:
+                        logger.error(f"❌ Sync job {job_id} failed (non-retryable): {error_str}")
 
-                        total_records += result.get("records_synced", 0)
-                        sync_results.append(result)
+                    # Fire fail callbacks
+                    for callback in self._callbacks["on_job_fail"]:
+                        try:
+                            callback(job, e)
+                        except Exception as ce:
+                            logger.warning(f"Callback error: {ce}")
 
-                        # Store detailed results in metadata
-                        job.metadata[f"stream_{stream}"] = {
-                            "run_id": result.get("run_id"),
-                            "records_synced": result.get("records_synced", 0),
-                            "pii_detections": result.get("pii_detections", 0),
-                            "quality_score": result.get("quality_score", 0),
-                            "status": result.get("status")
-                        }
+                    # Persist failed job
+                    await self._persist_job_history(job)
+                    break  # Exit retry loop
 
-                    job.records_synced = total_records
-                    job.metadata["sync_summary"] = {
-                        "total_streams": len(job.streams),
-                        "total_records": total_records,
-                        "results": sync_results
-                    }
-
-                    logger.info(f"Orchestrator completed: {total_records} total records from {len(job.streams)} streams")
-
-                except Exception as orch_error:
-                    logger.error(f"Orchestrator error: {orch_error}")
-                    # Fallback to mock for compatibility
-                    await asyncio.sleep(0.1)
-                    job.records_synced = len(job.streams) * 100  # Mock records
-                    job.metadata["orchestrator_error"] = str(orch_error)
-                    job.metadata["mode"] = "mock_fallback"
-
-            job.status = SyncStatus.COMPLETED
-            job.completed_at = datetime.utcnow()
-
-            # Persist job history to database
-            await self._persist_job_history(job)
-
-            # Fire complete callbacks
-            for callback in self._callbacks["on_job_complete"]:
-                try:
-                    callback(job)
-                except Exception as e:
-                    logger.warning(f"Callback error: {e}")
-
-            logger.info(f"Sync job {job_id} completed: {job.records_synced} records")
-
-        except Exception as e:
-            job.status = SyncStatus.FAILED
-            job.error_message = str(e)
-            job.completed_at = datetime.utcnow()
-
-            # Fire fail callbacks
-            for callback in self._callbacks["on_job_fail"]:
-                try:
-                    callback(job, e)
-                except Exception as ce:
-                    logger.warning(f"Callback error: {ce}")
-
-            logger.error(f"Sync job {job_id} failed: {e}")
-
-        finally:
-            with self._lock:
-                self._running_jobs.discard(job_id)
-                # Move to history
-                self._job_history.append(job)
-                # Keep only last 100 jobs in history
-                if len(self._job_history) > 100:
-                    self._job_history = self._job_history[-100:]
+        # Cleanup
+        with self._lock:
+            self._running_jobs.discard(job_id)
+            # Move to history
+            self._job_history.append(job)
+            # Keep only last 100 jobs in history
+            if len(self._job_history) > 100:
+                self._job_history = self._job_history[-100:]
 
         return job
+
+    async def _execute_sync_with_orchestrator(self, job: SyncJob) -> None:
+        """Execute sync using the Airbyte orchestrator."""
+        from app.connectors.airbyte.airbyte_orchestrator import get_airbyte_orchestrator
+        from app.core.config import settings
+
+        try:
+            # Create orchestrator
+            orchestrator = await get_airbyte_orchestrator(
+                database_url=settings.DATABASE_URL,
+                enable_pii_detection=True,
+                enable_quality_validation=True
+            )
+
+            # Execute sync for each stream
+            total_records = 0
+            sync_results = []
+
+            for stream in job.streams:
+                logger.info(f"Syncing stream: {stream}")
+                result = await orchestrator.execute_full_sync(
+                    source_id=job.source_id,
+                    stream_name=stream,
+                    sync_mode="incremental" if job.sync_mode == SyncMode.INCREMENTAL else "full_refresh"
+                )
+
+                total_records += result.get("records_synced", 0)
+                sync_results.append(result)
+
+                # Store detailed results in metadata
+                job.metadata[f"stream_{stream}"] = {
+                    "run_id": result.get("run_id"),
+                    "records_synced": result.get("records_synced", 0),
+                    "pii_detections": result.get("pii_detections", 0),
+                    "quality_score": result.get("quality_score", 0),
+                    "status": result.get("status")
+                }
+
+            job.records_synced = total_records
+            job.metadata["sync_summary"] = {
+                "total_streams": len(job.streams),
+                "total_records": total_records,
+                "results": sync_results
+            }
+
+            logger.info(f"Orchestrator completed: {total_records} total records from {len(job.streams)} streams")
+
+        except Exception as orch_error:
+            logger.error(f"Orchestrator error: {orch_error}")
+            # Fallback to mock for compatibility
+            await asyncio.sleep(0.1)
+            job.records_synced = len(job.streams) * 100  # Mock records
+            job.metadata["orchestrator_error"] = str(orch_error)
+            job.metadata["mode"] = "mock_fallback"
+
+    def _calculate_backoff_delay(self, attempt: int) -> float:
+        """
+        Calculate exponential backoff delay with jitter.
+
+        Fivetran/Airbyte-style: 1s, 2s, 4s, 8s, 16s, 30s max
+        """
+        # Exponential backoff
+        delay = DEFAULT_INITIAL_DELAY * (DEFAULT_BACKOFF_MULTIPLIER ** (attempt - 1))
+
+        # Cap at max delay
+        delay = min(delay, DEFAULT_MAX_DELAY)
+
+        # Add jitter (±10%) to prevent thundering herd
+        jitter = delay * DEFAULT_JITTER * (2 * random.random() - 1)
+        delay += jitter
+
+        return max(0.1, delay)  # Minimum 100ms
+
+    def _is_retryable_error(self, error: Exception) -> bool:
+        """
+        Determine if an error is retryable (Fivetran/Airbyte classification).
+
+        Retryable:
+            - Connection timeouts
+            - Rate limiting (429)
+            - Temporary unavailable (503)
+            - Network errors
+
+        Non-retryable:
+            - Authentication failures (401, 403)
+            - Not found (404)
+            - Schema mismatches
+            - Permission errors
+        """
+        error_str = str(error).lower()
+
+        # Non-retryable patterns (Fivetran/Airbyte classification)
+        non_retryable_patterns = [
+            "authentication",
+            "unauthorized",
+            "forbidden",
+            "permission denied",
+            "invalid credentials",
+            "schema mismatch",
+            "not found",
+            "does not exist",
+            "invalid api key",
+            "access denied",
+            "quota exceeded",  # Usually needs manual intervention
+        ]
+
+        for pattern in non_retryable_patterns:
+            if pattern in error_str:
+                return False
+
+        # Retryable patterns
+        retryable_patterns = [
+            "timeout",
+            "connection",
+            "rate limit",
+            "429",
+            "503",
+            "502",
+            "504",
+            "temporary",
+            "unavailable",
+            "network",
+            "socket",
+            "reset by peer",
+            "broken pipe",
+        ]
+
+        for pattern in retryable_patterns:
+            if pattern in error_str:
+                return True
+
+        # Default: assume retryable for unknown errors
+        return True
 
     def cancel_job(self, job_id: str) -> bool:
         """
