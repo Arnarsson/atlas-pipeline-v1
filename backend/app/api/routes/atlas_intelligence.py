@@ -214,6 +214,9 @@ async def get_health() -> Dict[str, Any]:
         "mcp_connectors": len(MCP_CONNECTORS),
         "pyairbyte_connectors": pyairbyte_health["total_available_connectors"],
         "pyairbyte_status": pyairbyte_health["status"],
+        "mock_mode": pyairbyte_health.get("mock_mode", True),
+        "mock_mode_forced": pyairbyte_health.get("mock_mode_forced", False),
+        "can_disable_mock": pyairbyte_health.get("can_disable_mock", False),
         "total_connectors": len(MCP_CONNECTORS) + pyairbyte_health["total_available_connectors"],
         "message": f"Access to {len(MCP_CONNECTORS)} MCP + {pyairbyte_health['total_available_connectors']}+ PyAirbyte connectors"
     }
@@ -353,6 +356,18 @@ async def get_pyairbyte_health() -> Dict[str, Any]:
     """Get PyAirbyte integration health status."""
     executor = get_pyairbyte_executor()
     return executor.health_check()
+
+
+@router.post("/pyairbyte/mock-mode")
+async def toggle_mock_mode(enabled: bool = Query(..., description="Enable or disable mock mode")) -> Dict[str, Any]:
+    """
+    Toggle mock/demo mode for PyAirbyte connectors.
+
+    When enabled, all connectors return sample data.
+    When disabled, real PyAirbyte connectors are used (if available).
+    """
+    executor = get_pyairbyte_executor()
+    return executor.set_mock_mode(enabled)
 
 
 @router.get("/pyairbyte/connectors")

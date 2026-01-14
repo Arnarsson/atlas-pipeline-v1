@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import {
   Search,
@@ -87,7 +87,25 @@ export default function SourceCatalog() {
     refetchInterval: 30000, // Check every 30 seconds
   });
 
-  const isMockMode = platformHealth?.pyairbyte_status === 'degraded';
+  const isMockMode = platformHealth?.mock_mode ?? platformHealth?.pyairbyte_status === 'degraded';
+  const canDisableMock = platformHealth?.can_disable_mock ?? false;
+  const isMockForced = platformHealth?.mock_mode_forced ?? false;
+
+  // Mutation to toggle mock mode
+  const toggleMockMutation = useMutation({
+    mutationFn: async (enabled: boolean) => {
+      const response = await api.post(`/atlas-intelligence/pyairbyte/mock-mode?enabled=${enabled}`);
+      return response.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['platform-health'] });
+      queryClient.invalidateQueries({ queryKey: ['pyairbyte-connectors'] });
+      toast.success(data.message);
+    },
+    onError: () => {
+      toast.error('Failed to toggle demo mode');
+    },
+  });
 
   // Fetch PyAirbyte connectors
   const { data: connectors, isLoading } = useQuery({
@@ -182,29 +200,61 @@ export default function SourceCatalog() {
 
   return (
     <div className="space-y-6">
-      {/* Mock Mode Banner */}
-      {isMockMode && (
-        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+      {/* Demo Mode Banner with Toggle */}
+      <div className={`flex items-start gap-3 p-4 rounded-lg border ${
+        isMockMode
+          ? 'bg-amber-500/10 border-amber-500/20'
+          : 'bg-green-500/10 border-green-500/20'
+      }`}>
+        {isMockMode ? (
           <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <h3 className="text-sm font-medium text-amber-600 dark:text-amber-400">
-              Demo Mode Active
-            </h3>
-            <p className="mt-1 text-sm text-amber-600/80 dark:text-amber-400/80">
-              PyAirbyte is not installed. Connectors show realistic sample data for demonstration.
-              To enable real connections, install PyAirbyte in a Python 3.11/3.12 environment.
-            </p>
-          </div>
-          <a
-            href="https://docs.airbyte.com/using-airbyte/pyairbyte/getting-started"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-amber-600 dark:text-amber-400 hover:underline shrink-0"
-          >
-            Learn more
-          </a>
+        ) : (
+          <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
+        )}
+        <div className="flex-1">
+          <h3 className={`text-sm font-medium ${
+            isMockMode
+              ? 'text-amber-600 dark:text-amber-400'
+              : 'text-green-600 dark:text-green-400'
+          }`}>
+            {isMockMode ? 'Demo Mode' : 'Live Mode'}
+          </h3>
+          <p className={`mt-1 text-sm ${
+            isMockMode
+              ? 'text-amber-600/80 dark:text-amber-400/80'
+              : 'text-green-600/80 dark:text-green-400/80'
+          }`}>
+            {isMockMode
+              ? (canDisableMock
+                  ? 'Using sample data. Toggle off to use real PyAirbyte connectors.'
+                  : 'PyAirbyte not installed. Install in Python 3.11/3.12 to enable live mode.')
+              : 'Connected to real PyAirbyte connectors.'}
+          </p>
         </div>
-      )}
+
+        {/* Toggle Switch */}
+        <div className="flex items-center gap-3 shrink-0">
+          <span className="text-xs text-[hsl(var(--muted-foreground))]">
+            {isMockMode ? 'Demo' : 'Live'}
+          </span>
+          <button
+            onClick={() => toggleMockMutation.mutate(!isMockMode)}
+            disabled={toggleMockMutation.isPending || (!canDisableMock && isMockMode && !isMockForced)}
+            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 ${
+              isMockMode
+                ? 'bg-amber-500 focus:ring-amber-500'
+                : 'bg-green-500 focus:ring-green-500'
+            } ${(!canDisableMock && isMockMode && !isMockForced) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+            title={!canDisableMock && isMockMode ? 'PyAirbyte not installed - cannot enable live mode' : ''}
+          >
+            <span
+              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                isMockMode ? 'translate-x-1' : 'translate-x-6'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">

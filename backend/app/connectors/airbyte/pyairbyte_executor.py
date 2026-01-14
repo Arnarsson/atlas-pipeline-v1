@@ -290,6 +290,34 @@ class PyAirbyteExecutor:
         self._sources: Dict[str, Any] = {}
         self._installed_connectors: set = set()
         self._pyairbyte_available = self._check_pyairbyte()
+        self._force_mock_mode = False  # User-controlled mock mode toggle
+
+    @property
+    def is_mock_mode(self) -> bool:
+        """Check if running in mock mode (either forced or PyAirbyte unavailable)."""
+        return self._force_mock_mode or not self._pyairbyte_available
+
+    def set_mock_mode(self, enabled: bool) -> Dict[str, Any]:
+        """
+        Enable or disable mock mode.
+
+        Args:
+            enabled: True to force mock mode, False to use real PyAirbyte (if available)
+
+        Returns:
+            Current mode status
+        """
+        self._force_mock_mode = enabled
+        return {
+            "mock_mode": self.is_mock_mode,
+            "forced": self._force_mock_mode,
+            "pyairbyte_available": self._pyairbyte_available,
+            "message": (
+                "Mock mode enabled - using sample data"
+                if self.is_mock_mode
+                else "Real mode - using PyAirbyte connectors"
+            )
+        }
 
     def _check_pyairbyte(self) -> bool:
         """Check if PyAirbyte is available."""
@@ -347,7 +375,7 @@ class PyAirbyteExecutor:
         Returns:
             JSON Schema for connector configuration
         """
-        if not self._pyairbyte_available:
+        if self.is_mock_mode:
             return self._get_fallback_spec(source_name)
 
         try:
@@ -472,7 +500,7 @@ class PyAirbyteExecutor:
         Returns:
             Configuration result with status
         """
-        if not self._pyairbyte_available:
+        if self.is_mock_mode:
             return {
                 "status": "simulated",
                 "message": "PyAirbyte not installed - configuration simulated",
@@ -522,7 +550,7 @@ class PyAirbyteExecutor:
         Returns:
             Catalog of available streams
         """
-        if not self._pyairbyte_available or source_name not in self._sources:
+        if self.is_mock_mode or source_name not in self._sources:
             # Return realistic mock catalog based on connector type
             mock_streams = self._get_mock_streams_for_connector(source_name)
             return AirbyteCatalog(streams=mock_streams)
@@ -561,7 +589,7 @@ class PyAirbyteExecutor:
         Returns:
             Data and sync state
         """
-        if not self._pyairbyte_available or source_name not in self._sources:
+        if self.is_mock_mode or source_name not in self._sources:
             # Return mock data for demo
             return {
                 "status": "simulated",
@@ -620,7 +648,7 @@ class PyAirbyteExecutor:
         Returns:
             Dictionary mapping stream names to DataFrames
         """
-        if not self._pyairbyte_available or source_name not in self._sources:
+        if self.is_mock_mode or source_name not in self._sources:
             # Return empty DataFrames for demo
             return {
                 "mock_stream": pd.DataFrame({"id": [1, 2, 3], "name": ["a", "b", "c"]})
@@ -660,17 +688,20 @@ class PyAirbyteExecutor:
     def health_check(self) -> Dict[str, Any]:
         """Check health status of PyAirbyte integration."""
         return {
-            "status": "healthy" if self._pyairbyte_available else "degraded",
+            "status": "healthy" if not self.is_mock_mode else "degraded",
             "pyairbyte_installed": self._pyairbyte_available,
+            "mock_mode": self.is_mock_mode,
+            "mock_mode_forced": self._force_mock_mode,
             "configured_sources": len(self._sources),
             "installed_connectors": len(self._installed_connectors),
             "total_available_connectors": len(self.CONNECTOR_CATALOG),
             "cache_dir": str(self.cache_dir),
             "message": (
-                "PyAirbyte ready for 300+ data sources"
-                if self._pyairbyte_available
-                else "Install PyAirbyte for full connector support: pip install airbyte"
-            )
+                "Demo mode - using sample data"
+                if self.is_mock_mode
+                else "PyAirbyte ready for 300+ data sources"
+            ),
+            "can_disable_mock": self._pyairbyte_available  # Can only disable mock if PyAirbyte installed
         }
 
 
