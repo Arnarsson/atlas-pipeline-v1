@@ -410,6 +410,51 @@ class PyAirbyteExecutor:
         }
         return specs.get(source_name, {"type": "object", "properties": {}})
 
+    def _get_mock_streams_for_connector(self, source_name: str) -> List[AirbyteStream]:
+        """Get realistic mock streams based on connector type."""
+        # Define realistic streams for common connectors
+        stream_definitions = {
+            "source-postgres": ["users", "orders", "products", "customers", "transactions", "events"],
+            "source-mysql": ["users", "orders", "products", "customers", "inventory", "logs"],
+            "source-salesforce": ["accounts", "contacts", "leads", "opportunities", "campaigns", "tasks", "events"],
+            "source-hubspot": ["contacts", "companies", "deals", "tickets", "engagements", "forms", "emails"],
+            "source-stripe": ["customers", "charges", "invoices", "subscriptions", "payments", "refunds", "products", "prices"],
+            "source-shopify": ["orders", "products", "customers", "inventory_items", "collections", "transactions"],
+            "source-github": ["repositories", "commits", "pull_requests", "issues", "stargazers", "collaborators"],
+            "source-slack": ["channels", "messages", "users", "files", "reactions"],
+            "source-google-analytics-v4": ["page_views", "sessions", "users", "events", "conversions"],
+            "source-jira": ["issues", "projects", "sprints", "boards", "users", "worklogs"],
+            "source-notion": ["pages", "databases", "blocks", "users"],
+            "source-airtable": ["tables", "records", "fields", "views"],
+            "source-mongodb-v2": ["collections"],
+            "source-snowflake": ["tables", "views", "schemas"],
+            "source-bigquery": ["tables", "views", "datasets"],
+            "source-mixpanel": ["events", "funnels", "cohorts", "users"],
+            "source-amplitude": ["events", "users", "sessions", "revenue"],
+            "source-zendesk": ["tickets", "users", "organizations", "groups", "macros"],
+            "source-intercom": ["contacts", "conversations", "companies", "admins", "tags"],
+            "source-quickbooks": ["accounts", "invoices", "customers", "vendors", "payments", "bills"],
+            "source-mailchimp": ["campaigns", "lists", "members", "reports", "automations"],
+            "source-linkedin-ads": ["campaigns", "creatives", "accounts", "analytics"],
+            "source-facebook-marketing": ["campaigns", "ad_sets", "ads", "insights", "audiences"],
+            "source-google-ads": ["campaigns", "ad_groups", "ads", "keywords", "conversions"],
+        }
+
+        # Get streams for this connector, or use generic defaults
+        stream_names = stream_definitions.get(source_name, ["records", "events", "entities"])
+
+        streams = []
+        for name in stream_names:
+            streams.append(AirbyteStream(
+                name=name,
+                json_schema={"type": "object", "properties": {"id": {"type": "string"}, "created_at": {"type": "string"}}},
+                supported_sync_modes=["full_refresh", "incremental"],
+                source_defined_cursor=True,
+                default_cursor_field=["updated_at"]
+            ))
+
+        return streams
+
     async def configure_source(
         self,
         source_name: str,
@@ -478,14 +523,9 @@ class PyAirbyteExecutor:
             Catalog of available streams
         """
         if not self._pyairbyte_available or source_name not in self._sources:
-            # Return mock catalog for demo
-            return AirbyteCatalog(streams=[
-                AirbyteStream(
-                    name="mock_stream",
-                    json_schema={"type": "object", "properties": {}},
-                    supported_sync_modes=["full_refresh", "incremental"]
-                )
-            ])
+            # Return realistic mock catalog based on connector type
+            mock_streams = self._get_mock_streams_for_connector(source_name)
+            return AirbyteCatalog(streams=mock_streams)
 
         source = self._sources[source_name]
         streams = []

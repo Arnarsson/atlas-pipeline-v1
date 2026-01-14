@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import {
   Search,
   Database,
@@ -18,10 +18,14 @@ import {
   CheckCircle,
   ArrowRight,
   Sparkles,
+  AlertTriangle,
+  Info,
 } from 'lucide-react';
 import { api } from '@/api/client';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import ConnectorConfigWizard from '@/components/ConnectorConfigWizard';
+import toast from 'react-hot-toast';
 
 interface Connector {
   name: string;
@@ -64,9 +68,26 @@ const CATEGORIES = [
 ];
 
 export default function SourceCatalog() {
-  const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [configWizardConnector, setConfigWizardConnector] = useState<Connector | null>(null);
+
+  // Check platform health/mock mode status
+  const { data: platformHealth } = useQuery({
+    queryKey: ['platform-health'],
+    queryFn: async () => {
+      try {
+        const response = await api.get('/atlas-intelligence/health');
+        return response.data;
+      } catch {
+        return { pyairbyte_status: 'unknown' };
+      }
+    },
+    refetchInterval: 30000, // Check every 30 seconds
+  });
+
+  const isMockMode = platformHealth?.pyairbyte_status === 'degraded';
 
   // Fetch PyAirbyte connectors
   const { data: connectors, isLoading } = useQuery({
@@ -74,13 +95,48 @@ export default function SourceCatalog() {
     queryFn: async () => {
       try {
         const response = await api.get('/atlas-intelligence/pyairbyte/connectors');
-        return response.data as Connector[];
+        // Map API response to frontend interface
+        // API returns: { id, name (display), category, status }
+        // Frontend expects: { name (id), display_name, category }
+        return response.data.map((c: any) => ({
+          name: c.id || c.name,
+          display_name: c.name || c.display_name || c.id,
+          category: capitalizeCategory(c.category),
+          description: c.description || `Connect to ${c.name || c.id}`,
+          is_popular: c.is_popular || isPopularConnector(c.id || c.name),
+        })) as Connector[];
       } catch {
         // Return mock data if API not available
         return getMockConnectors();
       }
     },
   });
+
+  // Helper to capitalize category names
+  const capitalizeCategory = (cat: string) => {
+    if (!cat) return 'Other';
+    const mapping: Record<string, string> = {
+      'database': 'Database',
+      'crm': 'CRM',
+      'marketing': 'Marketing',
+      'ecommerce': 'E-commerce',
+      'analytics': 'Analytics',
+      'project': 'Development',
+      'communication': 'Communication',
+      'storage': 'Storage',
+      'finance': 'Finance',
+      'hr': 'HR',
+      'productivity': 'Productivity',
+    };
+    return mapping[cat.toLowerCase()] || cat.charAt(0).toUpperCase() + cat.slice(1);
+  };
+
+  // Popular connectors list
+  const isPopularConnector = (id: string) => {
+    const popular = ['source-postgres', 'source-mysql', 'source-salesforce', 'source-stripe',
+                     'source-hubspot', 'source-google-analytics', 'source-shopify', 'source-slack'];
+    return popular.includes(id);
+  };
 
   // Fetch connected sources
   const { data: connectedSources } = useQuery({
@@ -112,7 +168,8 @@ export default function SourceCatalog() {
   const regularConnectors = filteredConnectors.filter((c) => !c.is_popular);
 
   const handleConnect = (connector: Connector) => {
-    navigate(`/connections/new?source=${connector.name}`);
+    // Open the configuration wizard modal
+    setConfigWizardConnector(connector);
   };
 
   if (isLoading) {
@@ -125,6 +182,30 @@ export default function SourceCatalog() {
 
   return (
     <div className="space-y-6">
+      {/* Mock Mode Banner */}
+      {isMockMode && (
+        <div className="flex items-start gap-3 p-4 rounded-lg bg-amber-500/10 border border-amber-500/20">
+          <AlertTriangle className="h-5 w-5 text-amber-500 shrink-0 mt-0.5" />
+          <div className="flex-1">
+            <h3 className="text-sm font-medium text-amber-600 dark:text-amber-400">
+              Demo Mode Active
+            </h3>
+            <p className="mt-1 text-sm text-amber-600/80 dark:text-amber-400/80">
+              PyAirbyte is not installed. Connectors show realistic sample data for demonstration.
+              To enable real connections, install PyAirbyte in a Python 3.11/3.12 environment.
+            </p>
+          </div>
+          <a
+            href="https://docs.airbyte.com/using-airbyte/pyairbyte/getting-started"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs text-amber-600 dark:text-amber-400 hover:underline shrink-0"
+          >
+            Learn more
+          </a>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -187,6 +268,12 @@ export default function SourceCatalog() {
       <div className="flex items-center gap-6 text-sm text-[hsl(var(--muted-foreground))]">
         <span>{filteredConnectors.length} connectors</span>
         <span>{connectedSources?.length || 0} connected</span>
+        {isMockMode && (
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium rounded bg-amber-500/10 text-amber-600 dark:text-amber-400">
+            <Info className="h-3 w-3" />
+            Demo Mode
+          </span>
+        )}
       </div>
 
       {/* Popular Connectors */}
@@ -239,6 +326,24 @@ export default function SourceCatalog() {
             Try adjusting your search or filter criteria
           </p>
         </div>
+      )}
+
+      {/* Connector Configuration Wizard Modal */}
+      {configWizardConnector && (
+        <ConnectorConfigWizard
+          connector={{
+            id: configWizardConnector.name,  // internal ID like "source-postgres"
+            name: configWizardConnector.display_name,  // display name like "PostgreSQL"
+            category: configWizardConnector.category,
+          }}
+          onClose={() => setConfigWizardConnector(null)}
+          onSuccess={() => {
+            toast.success(`${configWizardConnector.display_name} connected successfully!`);
+            setConfigWizardConnector(null);
+            queryClient.invalidateQueries({ queryKey: ['pyairbyte-connectors'] });
+            queryClient.invalidateQueries({ queryKey: ['connected-sources'] });
+          }}
+        />
       )}
     </div>
   );

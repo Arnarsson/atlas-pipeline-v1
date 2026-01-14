@@ -45,6 +45,7 @@ const navGroups: NavGroup[] = [
     items: [
       { name: 'Connections', href: '/connections', icon: Zap },
       { name: 'Catalog', href: '/sources', icon: Search, badge: '300+' },
+      { name: 'MCP Connectors', href: '/atlas-intelligence', icon: Zap, badge: '13' },
       { name: 'Credentials', href: '/credentials', icon: Key },
     ],
   },
