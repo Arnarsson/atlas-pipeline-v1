@@ -290,19 +290,21 @@ class PyAirbyteExecutor:
         self._sources: Dict[str, Any] = {}
         self._installed_connectors: set = set()
         self._pyairbyte_available = self._check_pyairbyte()
-        self._force_mock_mode = False  # User-controlled mock mode toggle
+        self._force_mock_mode: Optional[bool] = None  # None=auto, True=force mock, False=force live
 
     @property
     def is_mock_mode(self) -> bool:
-        """Check if running in mock mode (either forced or PyAirbyte unavailable)."""
-        return self._force_mock_mode or not self._pyairbyte_available
+        """Check if running in mock mode."""
+        if self._force_mock_mode is not None:
+            return self._force_mock_mode  # User override
+        return not self._pyairbyte_available  # Auto: mock if PyAirbyte unavailable
 
     def set_mock_mode(self, enabled: bool) -> Dict[str, Any]:
         """
         Enable or disable mock mode.
 
         Args:
-            enabled: True to force mock mode, False to use real PyAirbyte (if available)
+            enabled: True for mock/demo mode, False for live mode
 
         Returns:
             Current mode status
@@ -313,9 +315,9 @@ class PyAirbyteExecutor:
             "forced": self._force_mock_mode,
             "pyairbyte_available": self._pyairbyte_available,
             "message": (
-                "Mock mode enabled - using sample data"
+                "Demo mode - using sample data"
                 if self.is_mock_mode
-                else "Real mode - using PyAirbyte connectors"
+                else "Live mode active" + (" (simulated - PyAirbyte not installed)" if not self._pyairbyte_available else "")
             )
         }
 
@@ -699,9 +701,9 @@ class PyAirbyteExecutor:
             "message": (
                 "Demo mode - using sample data"
                 if self.is_mock_mode
-                else "PyAirbyte ready for 300+ data sources"
+                else "Live mode - PyAirbyte connectors active"
             ),
-            "can_disable_mock": self._pyairbyte_available  # Can only disable mock if PyAirbyte installed
+            "can_disable_mock": True  # Always allow toggling for demo purposes
         }
 
 
